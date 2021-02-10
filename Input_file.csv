@@ -1,0 +1,46 @@
+General_variables,unit,description,lower,median,upper,distribution,variable
+Production area,ha,total area of the nursery fields where heathers are produced,1,,1,const,production_area
+Infection risk,%,general fungus infection risk for heather plants under nursery field conditions,0.05,,0.95,tnorm_0_1,infection_risk
+Plants per hectare,digit,plant density on one hectare area in heather nursery production,160000,,200000,posnorm,plants_per_ha
+Normal: Probability of fungus occurrence,%,fungus onset probability for normal preventive fungicide application,0.1,,0.5,tnorm_0_1,fungus_probability_N
+Reduce: Probability of fungus occurrence,%,fungus onset probability for reduced preventive fungicide application,0.1,,0.6,tnorm_0_1,fungus_probability_R
+Normal: Disease expansion factor,%,potential of disease expansion after having symptomatic plants in the field for normal preventive fungicide application,0.05,,0.6,tnorm_0_1,disease_expansion_factor_N
+Reduce: Disease expansion factor,%,potential of disease expansion after having symptomatic plants in the field for reduced preventive fungicide application,0.05,,0.6,tnorm_0_1,disease_expansion_factor_R
+Normal: Detection rate,%,"detection rate for normal plant observation in normal preventive fungicide application to detect symptomatic, stressed or dead plants",0.1,,0.6,tnorm_0_1,detection_factor_N
+Reduce: Detection rate,%,"detection rate for more plant observation in reduced preventive fungicide application to detect symptomatic, stressed or dead plants",0.1,,0.8,tnorm_0_1,detection_factor_R
+Normal: Effect of fungicide applications,%,effect of direct fungicide applications if normal preventive fungicide application was used before,0.1,,0.9,tnorm_0_1,fungus_fight_effect_N
+Reduce: Effect of fungicide applications,%,effect of direct fungicide applications if reduced preventive fungicide application was used before,0.1,,0.9,tnorm_0_1,fungus_fight_effect_R
+var CV,%,desired coefficient of variation in percent,5,,20,posnorm,var_CV
+Normal: Number of preventive fungicide applications,digit,number of normal yearly preventive fungicide applications,10,,30,posnorm,number_yearly_prophy_application_N
+Normal: Number of preventive fungicide applications,digit,number of reduced yearly preventive fungicide applications,2,,10,posnorm,number_yearly_prophy_application_R
+Effect of no preventive application,%,potential effect of reducing fungus infected plants if no preventive application is used per month,0.01,,0.2,tnorm_0_1,effect_no_prophy_application
+Effect of one preventive application,%,potential effect of reducing fungus infected plants if one preventive application is used per month,0.2,,0.3,tnorm_0_1,effect_one_prophy_application
+Effect of two preventive application,%,potential effect of reducing fungus infected plants if two preventive applications are used per month,0.3,,0.4,tnorm_0_1,effect_two_prophy_application
+Effect of three preventive application,%,potential effect of reducing fungus infected plants if three preventive applications are used per month,0.4,,0.5,tnorm_0_1,effect_three_prophy_application
+Effect of four preventive application,%,potential effect of reducing fungus infected plants if four preventive applications are used per month,0.5,,0.6,tnorm_0_1,effect_four_prophy_application
+Effect of five preventive application,%,potential effect of reducing fungus infected plants if five preventive applications are used per month,0.6,,0.7,tnorm_0_1,effect_five_prophy_application
+Effect of six preventive application,%,potential effect of reducing fungus infected plants if six preventive applications are used per month,0.7,,0.8,tnorm_0_1,effect_six_prophy_application
+Effect of seven preventive application,%,potential effect of reducing fungus infected plants if seven preventive applications are used per month,0.8,,0.9,tnorm_0_1,effect_seven_prophy_application
+Effect of eight or more preventive application,%,potential effect of reducing fungus infected plants if eight or more preventive applications are used per month,0.9,,0.99,tnorm_0_1,effect_eight_prophy_application
+Value of sellable heather,Euro,value of one sellable Calluna,0.4,,1.2,posnorm,value_of_saleable_Calluna
+Reduce: Chance of reaching higher plant price,%,chance for higher price if Calluna plants have been treated with fewer preventive fungicide applications,0.1,,0.9,tnorm_0_1,chance_higher_price_sustainable
+Reduce: Price for more sustainable heather,Euro,additional price increase for Calluna plants which have been treated with fewer preventive fungicide applications,0.01,,0.1,norm,price_premium_sustainable
+Value of not sellable heather,Euro,value of one not sellable Calluna which was cultivated over whole time scale but has less quality to sell it,0.3,,1.2,posnorm,value_not_saleable_Calluna
+Value of discarded heather,Euro,"value of one sorted out Calluna which was detected as infected, stressed or dead and therefore sorted out in cultivation process",0.02,,0.9,posnorm,value_sorted_out_Calluna
+Value of one new plant,Euro,value of one new Calluna which was bought for cultivation ,0.02,,0.2,posnorm,value_of_one_new_plant
+Fertilizer adjustment,Euro,fertilizer adjustment costs because of reduced preventive application that leads to a faster growing process ,50,,500,posnorm,fertilizer_adjustment
+Normal: Fertilizer costs,Euro,costs for normal fertilizer in a standard cultivation scenario,1500,,12000,posnorm,costs_normal_fertilizer
+Costs staff,Euro,costs for staff that is employed in the heather production system,25000,,120000,posnorm,costs_staff
+Costs when more staff is needed,Euro,costs that appear when a pre-defined threshold of the production area is reached ,25000,,90000,posnorm,costs_more_staff
+Threshold when more staff is needed,ha,threshold that increases staff costs if production area is greater than this threshold,1,,3,posnorm,threshold_big_area_more_staff
+Normal: Monitoring costs,Euro,costs for normal monitoring if normal preventive fungicide application is used,100,,1000,posnorm,costs_monitoring_per_ha_month
+Reduce: Monitoring costs,Euro,costs for additional monitoring if reduced preventive fungicide application is used,300,,1500,posnorm,additional_costs_more_monitoring_per_ha
+Normal: Fungicide costs,Euro,yearly costs of direct fungicide applications if normal preventive application is used,1000,,5000,posnorm,yearly_costs_of_direct_fungus_fight_N
+Reduce: Fungicide costs,Euro,yearly costs of direct fungicide applications if reduced preventive application is used ,300,,3000,posnorm,yearly_costs_of_direct_fungus_fight_R
+Costs of one preventive application,Euro,costs of one preventive fungicide application,50,,250,posnorm,cost_one_prophy_application
+Watch: Detection rate,%,"detection rate of the monitoring plan to detect symptomatic, stressed and dead plants",0.1,,0.9,tnorm_0_1,detection_factor_MP
+Watch: Effect of fungicide applications,%,effect of direct fungicide applications if monitoring plan is implemented,0.1,,0.95,tnorm_0_1,fungus_fight_effect_MP
+Watch: Number of laboratory samples,digit,number of lab samples for the monitoring plan,0.001,,0.01,tnorm_0_1,amount_of_samples_MP
+Watch: Costs per sample,Euro,costs per lab sample for the monitoring plan,20,,60,posnorm,costs_per_sample_MP
+Savings due to monitoring plan,Euro,potential resource savings due to monitoring plan,0,,30000,norm,savings_due_to_MP
+Watch: Monitoring costs,Euro,additional costs to implement monitoring plan ,100,,15000,norm,costs_monitoring_plan_per_ha

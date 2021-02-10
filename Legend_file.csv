@@ -1,0 +1,46 @@
+variable,label
+production_area,Production area
+infection_risk,Infection risk
+plants_per_ha,Plants per hectare
+fungus_probability_N,Normal: Probability of fungus occurrence
+fungus_probability_R,Reduce: Probability of fungus occurrence
+disease_expansion_factor_N,Normal: Disease expansion factor
+disease_expansion_factor_R,Reduce: Disease expansion factor
+detection_factor_N,Normal: Detection rate
+detection_factor_R,Reduce: Detection rate
+fungus_fight_effect_N,Normal: Effect of fungicide applications
+fungus_fight_effect_R,Reduce: Effect of fungicide applications
+var_CV,var CV
+number_yearly_prophy_application_N,Normal: Number of preventive fungicide applications
+number_yearly_prophy_application_R,Normal: Number of preventive fungicide applications
+effect_no_prophy_application,Effect of no preventive application
+effect_one_prophy_application,Effect of one preventive application
+effect_two_prophy_application,Effect of two preventive application
+effect_three_prophy_application,Effect of three preventive application
+effect_four_prophy_application,Effect of four preventive application
+effect_five_prophy_application,Effect of five preventive application
+effect_six_prophy_application,Effect of six preventive application
+effect_seven_prophy_application,Effect of seven preventive application
+effect_eight_prophy_application,Effect of eight or more preventive application
+value_of_saleable_Calluna,Value of sellable heather
+chance_higher_price_sustainable,Reduce: Chance of reaching higher plant price
+price_premium_sustainable,Reduce: Price for more sustainable heather
+value_not_saleable_Calluna,Value of not sellable heather
+value_sorted_out_Calluna,Value of discarded heather
+value_of_one_new_plant,Value of one new plant
+fertilizer_adjustment,Fertilizer adjustment
+costs_normal_fertilizer,Normal: Fertilizer costs
+costs_staff,Costs staff
+costs_more_staff,Costs when more staff is needed
+threshold_big_area_more_staff,Threshold when more staff is needed
+costs_monitoring_per_ha_month,Normal: Monitoring costs
+additional_costs_more_monitoring_per_ha,Reduce: Monitoring costs
+yearly_costs_of_direct_fungus_fight_N,Normal: Fungicide costs
+yearly_costs_of_direct_fungus_fight_R,Reduce: Fungicide costs
+cost_one_prophy_application,Costs of one preventive application
+detection_factor_MP,Watch: Detection rate
+fungus_fight_effect_MP,Watch: Effect of fungicide applications
+amount_of_samples_MP,Watch: Number of laboratory samples
+costs_per_sample_MP,Watch: Costs per sample
+savings_due_to_MP,Savings due to monitoring plan
+costs_monitoring_plan_per_ha,Watch: Monitoring costs

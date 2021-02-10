@@ -1,0 +1,2058 @@
+---
+title: Model-based evaluation of management options in ornamental plant nurseries
+author: Marius Ruett^a^, Cory Whitney^a,b^ and Eike Luedeling^a^ <br /> <small>^a^INRES-Horticultural Sciences, University of Bonn, Auf dem Huegel 6, 53121 Bonn, Germany <br /> ^b^Center of Development Research (ZEF), University of Bonn, Genscherallee 3, 53113 Bonn, Germany<small/>
+csl: journal-of-cleaner-production.csl
+output: html_document 
+#always_allow_html: true   
+bibliography: biblibrary.bib
+link-citations: yes
+---
+<!-- Print pdf and word versions -->
+<!-- rmarkdown::render("Calluna_model.Rmd", output_format = "pdf_document") -->
+<!-- rmarkdown::render("Calluna_model.Rmd", output_format = "word_document") -->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(decisionSupport)
+library(dplyr)
+library(extrafont)
+library(magrittr)
+library(ggplot2)
+library(ggpubr)
+library(ggstance)
+library(tidyverse)
+library(devtools)
+library(knitr)
+library(kableExtra)
+library(bookdown)
+
+options(knitr.table.format = "html")
+```
+
+This supplementary outlines the Decision Analysis approaches used in `Model-based evaluation of management options in ornamental plant nurseries`[@ruett_2020]. Here we provide our input table, code and results to allow for transparent reproduction of the model. To create and organize this supplementary file we used the packages `devtools` [@wickhamDevtoolsToolsMake2019], `knitr` [@xieKnitrGeneralPurposePackage2019], `kableExtra` [@zhuKableExtraConstructComplex2019] and `bookdown` [@xieBookdownAuthoringBooks2019]. All other applied `R` packages are cited and listed in the [References].
+
+## Input table for model-based evaluation of management options in ornamental plant nurseries
+
+The input table `Input_file.csv` (attached) contains: Variable names, unit, distributions (posnorm = positive normal distribution, const = constant, tnorm_0_1= truncated normal distribution, norm = normal distribution), lower bound, mean, upper bound and definition of variables.
+
+## Implementing the model in R
+
+Here we provide our mathematical model that enables simulation of decision outcomes.
+The calculations in this document are based on random draws from the distributions in the input table `Input_file.csv`. Explanations for code chunks are not part of the actual simulation. We used the following code descriptions to guide readers through our process of code development.
+
+Load the input table `Input_file.csv` and make variables.
+```{r}
+input_table <- "Input_file.csv"
+
+make_variables <- function(est,n=1)
+{ x <- random(rho=est, n=n)
+for(i in colnames(x)) assign(i, as.numeric(x[1,i]),envir = .GlobalEnv)}
+
+make_variables(estimate_read_csv(input_table))
+```
+
+We generated a function called `Calluna_Simulation` to evaluate the decision options in `decisionSupport` [@luedelingDecisionSupportQuantitativeSupport2019]. The following calculations are part of this function (see the entire function below). 
+```{r eval=FALSE}
+Calluna_Simulation <- function(x, varnames){
+```
+
+First we defined the number of plants in the whole production area.
+
+```{r}
+  original_plant_number <- production_area * plants_per_ha
+```
+
+We made a vector called `W` to define the the risky months of the year (May, June, July and August).
+
+```{r}
+  W <- weather_arguments_for_infection <- c(0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0)
+```
+
+Then we defined a vector called `MPD` to define the increased monitoring rate (May till June for the monitoring plan).
+
+```{r}
+  MPD <- c(0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0)
+```
+
+We used the `vv()` (value varier function) function from `decisionSupport` [@luedelingDecisionSupportQuantitativeSupport2019] to account for the monthly variation in infection risks.
+Here it is used to generate values out of variables pre-defined upper and lower bounds over time. 
+We use `sapply` [@rdevelopmentcoreteamLanguageEnvironmentStatistical2019], which is available in base R to insert percentage values for risky months.
+
+We also used Pipes `%>%` that allow faster calculation of connected calculations. Pipes are available in the package `magrittr` [@bacheMagrittrForwardPipeOperator2014].
+
+In our simulation the general infection risk (risk_per_month) is the same for all management options.
+
+```{r}
+  risk_per_month <- vv(infection_risk, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+Impact of monitoring and direct pesticide applications may reduce the number of symptomatic plants, but risks like disease expansion can increase the number of symptomatic plants again. Therefore, our simulated management options **(Normal, Watch, WatchReduce and Reduce)** have different impacts on potential outcomes depending on options benefits and costs. 
+
+**The Baseline scenario (Normal):**
+We simulated fungus occurrence, detection rate, disease expansion and the effect of direct pesticide application over one year of heather production with normal preventive spraying.
+
+```{r}
+  fungus_probability_N <- vv(fungus_probability_N, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+```{r}
+  detection_factor_N <- vv(detection_factor_N, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+```{r}
+  disease_expansion_factor_N <- vv(disease_expansion_factor_N, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+```{r}  
+  fungus_fight_effect_N <- vv(fungus_fight_effect_N, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+**The reduced preventive spraying scenario (Reduce):**
+Then we simulated fungus occurrence, detection rate, disease expansion and the effect of direct pesticide application over one year of heather production with reduced preventive spraying.
+
+```{r}
+  fungus_probability_R <- vv(fungus_probability_R, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+```{r}  
+  detection_factor_R <- vv(detection_factor_R, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+```{r}
+  disease_expansion_factor_R <- vv(disease_expansion_factor_R, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+```{r}
+  fungus_fight_effect_R <- vv(fungus_fight_effect_R, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+**The monitoring plan scenario (Watch):**
+We simulated fungus occurrence, detection rate, disease expansion and the effect of direct pesticide application over one year of heather production with normal preventive spraying + monitoring plan.
+
+```{r}
+  fungus_probability_MPN <- vv(fungus_probability_N, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+```{r}
+  detection_factor_MPN <- vv(detection_factor_MP, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+```{r}
+  disease_expansion_factor_MPN <- vv(disease_expansion_factor_N, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+```{r}
+  fungus_fight_effect_MPN <- vv(fungus_fight_effect_MP, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+**The monitoring plan with reduced preventive spraying scenario (WatchReduce):**
+Then we simulated fungus occurrence, detection rate, disease expansion and the effect of direct pesticide application over one year of heather production with reduced preventive spraying + monitoring plan.
+
+```{r}
+  fungus_probability_MPR <- vv(fungus_probability_R, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+```{r}
+  detection_factor_MPR <- vv(detection_factor_MP, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+```{r}
+  disease_expansion_factor_MPR <- vv(disease_expansion_factor_R, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+```{r}
+  fungus_fight_effect_MPR <- vv(fungus_fight_effect_MP, var_CV, 12)* W %>%
+  sapply(., function(x) max(c(min(c(1,x)),0)))
+```
+
+Here we defined **Normal** and **Reduce** preventive spraying costs.
+
+```{r}
+  costs_yearly_prophy_application_N <- round((number_yearly_prophy_application_N),digits=0) * 
+  cost_one_prophy_application * production_area
+```
+
+```{r}
+  costs_yearly_prophy_application_R <- round((number_yearly_prophy_application_R),digits=0) * 
+  cost_one_prophy_application * production_area
+```
+
+Additionally, we defined preventive spraying costs for **Watch** and **WatchReduce**.
+
+```{r}
+  costs_yearly_prophy_application_MPN <- round((number_yearly_prophy_application_N),digits=0) * 
+  cost_one_prophy_application * production_area
+```
+
+```{r}
+  costs_yearly_prophy_application_MPR <- round((number_yearly_prophy_application_R),digits=0) * 
+  cost_one_prophy_application * production_area
+```
+
+We created the function `need.random.integers` to split up number of preventive applications per year in preventive applications per risky month.
+
+```{r}
+need.random.integers <- function(a,b,n,k){
+  if (n*b<k) stop("k too large")
+  if (n*a>k) stop("k too small")
+  while(TRUE){
+      x <- sample(1:(k - n*a),n-1, replace = TRUE)
+      x <- sort(x)
+      x <- c(x,k-n*a) - c(0,x)
+      if(max(x) <= b-a) return(a+x)}}
+```
+
+Then we defined the number of preventive applications for **Normal**. 
+
+```{r}
+  effect_application_N <- need.random.integers(0, round((number_yearly_prophy_application_N), digits = 0),
+                                               4, round((number_yearly_prophy_application_N), digits = 0))* W
+```
+
+We defined the potential of preventive spraying to reduce fungus onset for **Normal**.
+
+```{r}  
+  effect_application_N <- effect_application_N %>%
+    replace(., effect_application_N==0, effect_no_prophy_application) %>%
+    replace(., effect_application_N==1, effect_one_prophy_application) %>%
+    replace(., effect_application_N==2, effect_two_prophy_application) %>%
+    replace(., effect_application_N==3, effect_three_prophy_application) %>%
+    replace(., effect_application_N==4, effect_four_prophy_application) %>%
+    replace(., effect_application_N==5, effect_five_prophy_application) %>%
+    replace(., effect_application_N==6, effect_six_prophy_application) %>%
+    replace(., effect_application_N==7, effect_seven_prophy_application) %>%
+    replace(., effect_application_N>=8, effect_eight_prophy_application) * W
+```
+
+Then we defined the number of preventive applications for **Reduce**.
+
+```{r}
+  effect_application_R <- need.random.integers(0, round((number_yearly_prophy_application_R), digits = 0),
+                                               4, round((number_yearly_prophy_application_R), digits = 0))* W
+```  
+
+We defined the potential of preventive spraying to reduce fungus onset for **Reduce**.
+
+```{r}  
+  effect_application_R <- effect_application_R %>%
+    replace(., effect_application_R==0, effect_no_prophy_application) %>%
+    replace(., effect_application_R==1, effect_one_prophy_application) %>%
+    replace(., effect_application_R==2, effect_two_prophy_application) %>%
+    replace(., effect_application_R==3, effect_three_prophy_application) %>%
+    replace(., effect_application_R==4, effect_four_prophy_application) %>%
+    replace(., effect_application_R==5, effect_five_prophy_application) %>%
+    replace(., effect_application_R==6, effect_six_prophy_application) %>%
+    replace(., effect_application_R==7, effect_seven_prophy_application) %>%
+    replace(., effect_application_R>=8, effect_eight_prophy_application) * W
+```
+
+Because the same number of preventive applications were used for **Watch** and **Normal** we defined equal preventive spraying effects for these management strategies.
+
+```{r}
+  effect_application_MPN <- effect_application_N
+```
+
+We also defined the same preventive spraying effects for **WatchReduce** and **Reduce**.
+
+```{r}
+  effect_application_MPR <- effect_application_R
+```
+
+Here we simulated all management interactions and effects that influence the outcome of **Normal** heather production. For all management strategies, we adjusted all used vectors so that they had the same length to facilitate management simulation along an one year timescale.
+
+```{r}
+  not_infected_plants_after_prophy_N <- W
+  symptomatic_plants_N <- W
+  detected_plants_after_monitoring_N <- W
+  healthy_plants_after_fungus_fight_N <- W
+  getting_again_sick_plants_N <- W
+```  
+
+We applied probabilities for infection, effect of prophylactic applications, detection of symptomatic plants and reinfection to simulate impacts of management interventions on the number of detected, not marketable and healthy plants for **Normal**.
+
+`For loops` are available in base R but can also be found in `purrr` [@henryPurrrFunctionalProgramming2019] as part of the `tidyverse` [@wickhamWelcomeTidyverse2019] package.
+
+```{r}
+  infected_plant_number_N <- original_plant_number * risk_per_month
+  
+  for (i in 2:length(infected_plant_number_N)){ 
+    infected_plant_number_N[i] <- infected_plant_number_N[i-1] + risk_per_month[i]*
+      (original_plant_number - infected_plant_number_N[i-1])}
+```
+
+```{r}
+  for (j in 2:length(not_infected_plants_after_prophy_N)) {
+    not_infected_plants_after_prophy_N[j] <- not_infected_plants_after_prophy_N[j-1] + effect_application_N[j]*
+      (infected_plant_number_N[j] - not_infected_plants_after_prophy_N[j-1])}
+```
+
+```{r}
+  still_infected_plants_N <- infected_plant_number_N - not_infected_plants_after_prophy_N
+```  
+
+```{r}
+  for (k in 2:length(symptomatic_plants_N)) {
+    symptomatic_plants_N[k] <- symptomatic_plants_N[k-1] + fungus_probability_N[k]*
+      (still_infected_plants_N[k] - symptomatic_plants_N[k-1])}
+```
+
+```{r}
+  for (l in 2:length(detected_plants_after_monitoring_N)) {
+    detected_plants_after_monitoring_N[l] <- detected_plants_after_monitoring_N[l-1] + detection_factor_N[l]*
+      (symptomatic_plants_N[l] - detected_plants_after_monitoring_N[l-1])}
+```
+
+```{r}
+  symptomatic_plants_after_monitoring_N <- symptomatic_plants_N - detected_plants_after_monitoring_N
+```
+
+```{r}
+  for (m in 2:length(getting_again_sick_plants_N)) {
+    getting_again_sick_plants_N[m] <- getting_again_sick_plants_N[m-1] + disease_expansion_factor_N[m]*
+      (symptomatic_plants_after_monitoring_N[m] - getting_again_sick_plants_N[m-1])}
+```
+
+```{r}  
+  all_symptomatic_plants_N <- symptomatic_plants_after_monitoring_N + getting_again_sick_plants_N
+```
+
+```{r}
+  for (n in 2:length(healthy_plants_after_fungus_fight_N)) {
+    healthy_plants_after_fungus_fight_N[n] <- healthy_plants_after_fungus_fight_N[n-1] + fungus_fight_effect_N[n]*
+      (all_symptomatic_plants_N[n] - healthy_plants_after_fungus_fight_N[n-1])}
+```
+
+We ran the simulation to generate the number of infected plants, direct plant losses and actually marketable plants for **Normal**.
+
+```{r}
+  final_fungus_infected_plants_N <- all_symptomatic_plants_N[12] - healthy_plants_after_fungus_fight_N[12]
+```
+
+```{r}
+  direct_plant_losses_N <- detected_plants_after_monitoring_N[12]
+```
+
+```{r}
+  actual_saleable_Callunas_N <- original_plant_number - (final_fungus_infected_plants_N + direct_plant_losses_N)
+```
+
+Here we simulated impacts of management interventions on the number of detected, not marketable and healthy plants for **Reduce**.
+
+```{r}
+  not_infected_plants_after_prophy_R <- W
+  symptomatic_plants_R <- W
+  detected_plants_after_monitoring_R <- W
+  healthy_plants_after_fungus_fight_R <- W
+  getting_again_sick_plants_R <- W
+```
+
+```{r}
+  infected_plant_number_R <- original_plant_number * risk_per_month
+  for (i in 2:length(infected_plant_number_R)){
+    infected_plant_number_R[i] <- infected_plant_number_R[i-1] + risk_per_month[i]*
+      (original_plant_number - infected_plant_number_R[i-1])}
+```  
+
+```{r}  
+  for (j in 2:length(not_infected_plants_after_prophy_R)) {
+    not_infected_plants_after_prophy_R[j] <- not_infected_plants_after_prophy_R[j-1] + effect_application_R[j]*
+      (infected_plant_number_R[j] - not_infected_plants_after_prophy_R[j-1])}
+```  
+
+```{r}
+  still_infected_plants_R <- infected_plant_number_R - not_infected_plants_after_prophy_R
+```
+
+```{r}
+  for (k in 2:length(symptomatic_plants_R)) {
+    symptomatic_plants_R[k] <- symptomatic_plants_R[k-1] + fungus_probability_R[k]*
+      (still_infected_plants_R[k] - symptomatic_plants_R[k-1])}
+```
+
+```{r}
+  for (l in 2:length(detected_plants_after_monitoring_R)) {
+    detected_plants_after_monitoring_R[l] <- detected_plants_after_monitoring_R[l-1] + detection_factor_R[l]*
+      (symptomatic_plants_R[l] - detected_plants_after_monitoring_R[l-1])}
+```
+
+```{r}
+  symptomatic_plants_after_monitoring_R <- symptomatic_plants_R - detected_plants_after_monitoring_R
+```  
+
+```{r}
+  for (m in 2:length(getting_again_sick_plants_R)) {
+    getting_again_sick_plants_R[m] <- getting_again_sick_plants_R[m-1] + disease_expansion_factor_R[m]*
+      (symptomatic_plants_after_monitoring_R[m] - getting_again_sick_plants_R[m-1])}
+```
+
+```{r}  
+  all_symptomatic_plants_R <- symptomatic_plants_after_monitoring_R + getting_again_sick_plants_R
+```
+
+```{r}
+  for (n in 2:length(healthy_plants_after_fungus_fight_R)) {
+    healthy_plants_after_fungus_fight_R[n] <- healthy_plants_after_fungus_fight_R[n-1] + fungus_fight_effect_R[n]*
+      (all_symptomatic_plants_R[n] - healthy_plants_after_fungus_fight_R[n-1])}
+```
+
+Then we ran the simulation to generate the number of infected plants, direct plant losses and actually marketable plants for **Reduce**.
+
+```{r}
+  final_fungus_infected_plants_R <- all_symptomatic_plants_R[12] - healthy_plants_after_fungus_fight_R[12]
+```
+
+```{r}
+  direct_plant_losses_R <- detected_plants_after_monitoring_R[12]
+```  
+
+```{r}
+  actual_saleable_Callunas_R <- original_plant_number - (final_fungus_infected_plants_R + direct_plant_losses_R)
+```
+
+Here we simulated impacts of management interventions on the number of detected, not marketable and healthy plants for **Watch**.
+
+```{r}
+  not_infected_plants_after_prophy_MPN <- W
+  symptomatic_plants_MPN <- W
+  detected_plants_after_monitoring_MPN <- MPD
+  healthy_plants_after_fungus_fight_MPN <- W
+  getting_again_sick_plants_MPN <- W
+```
+
+```{r}
+  infected_plant_number_MPN <- original_plant_number * risk_per_month
+```
+
+```{r}
+  for (i in 2:length(infected_plant_number_MPN)){ 
+    infected_plant_number_MPN[i] <- infected_plant_number_MPN[i-1] + risk_per_month[i]*
+      (original_plant_number - infected_plant_number_MPN[i-1])}
+```
+
+```{r}
+  for (j in 2:length(not_infected_plants_after_prophy_MPN)) {
+    not_infected_plants_after_prophy_MPN[j] <- not_infected_plants_after_prophy_MPN[j-1] + effect_application_MPN[j]*
+      (infected_plant_number_MPN[j] - not_infected_plants_after_prophy_MPN[j-1])}
+```
+
+```{r}
+   still_infected_plants_MPN <- infected_plant_number_MPN - not_infected_plants_after_prophy_MPN
+```
+
+```{r}
+  for (k in 2:length(symptomatic_plants_MPN)) {
+    symptomatic_plants_MPN[k] <- symptomatic_plants_MPN[k-1] + fungus_probability_MPN[k]*
+      (still_infected_plants_MPN[k] - symptomatic_plants_MPN[k-1])}
+```
+
+```{r}
+  for (l in 2:length(detected_plants_after_monitoring_MPN)) {
+    detected_plants_after_monitoring_MPN[l] <- detected_plants_after_monitoring_MPN[l-1] + detection_factor_MPN[l]*
+      (symptomatic_plants_MPN[l] - detected_plants_after_monitoring_MPN[l-1])}
+```
+
+```{r}
+  symptomatic_plants_after_monitoring_MPN <- symptomatic_plants_MPN - detected_plants_after_monitoring_MPN
+```
+
+```{r}
+  for (m in 2:length(getting_again_sick_plants_MPN)) {
+    getting_again_sick_plants_MPN[m] <- getting_again_sick_plants_MPN[m-1] + disease_expansion_factor_MPN[m]*
+      (symptomatic_plants_after_monitoring_MPN[m] - getting_again_sick_plants_MPN[m-1])}
+```
+
+```{r}
+  all_symptomatic_plants_MPN <- symptomatic_plants_after_monitoring_MPN + getting_again_sick_plants_MPN
+```
+
+```{r}
+  for (n in 2:length(healthy_plants_after_fungus_fight_MPN)) {
+    healthy_plants_after_fungus_fight_MPN[n] <- healthy_plants_after_fungus_fight_MPN[n-1] + fungus_fight_effect_MPN[n]*
+      (all_symptomatic_plants_MPN[n] - healthy_plants_after_fungus_fight_MPN[n-1])}
+```
+
+We ran the simulation to generate the final number of infected plants, direct plant losses and actually marketable plants for **Watch**.
+
+```{r}
+  final_fungus_infected_plants_MPN <- all_symptomatic_plants_MPN[12] - healthy_plants_after_fungus_fight_MPN[12]
+```
+
+```{r}
+  direct_plant_losses_MPN <- detected_plants_after_monitoring_MPN[12]
+```
+
+```{r}
+  actual_saleable_Callunas_MPN <- original_plant_number - (final_fungus_infected_plants_MPN + direct_plant_losses_MPN)
+```
+
+Here we simulated impacts of management interventions on the number of detected, not marketable and healthy plants for **WatchReduce**.
+
+```{r}
+  not_infected_plants_after_prophy_MPR <- W
+  symptomatic_plants_MPR <- W
+  detected_plants_after_monitoring_MPR <- MPD
+  healthy_plants_after_fungus_fight_MPR <- W
+  getting_again_sick_plants_MPR <- W
+```
+
+```{r}
+  infected_plant_number_MPR <- original_plant_number * risk_per_month
+```
+
+```{r}
+  for (i in 2:length(infected_plant_number_MPR)){ 
+    infected_plant_number_MPR[i] <- infected_plant_number_MPR[i-1] + risk_per_month[i]*
+      (original_plant_number - infected_plant_number_MPR[i-1])}
+```
+
+```{r}
+  for (j in 2:length(not_infected_plants_after_prophy_MPR)) {
+    not_infected_plants_after_prophy_MPR[j] <- not_infected_plants_after_prophy_MPR[j-1] + effect_application_MPR[j]*
+      (infected_plant_number_MPR[j] - not_infected_plants_after_prophy_MPR[j-1])}
+```
+
+```{r}
+  still_infected_plants_MPR <- infected_plant_number_MPR - not_infected_plants_after_prophy_MPR
+```
+
+```{r}
+  for (k in 2:length(symptomatic_plants_MPR)) {
+    symptomatic_plants_MPR[k] <- symptomatic_plants_MPR[k-1] + fungus_probability_MPR[k]*
+      (still_infected_plants_MPR[k] - symptomatic_plants_MPR[k-1])}
+```
+
+```{r}
+  for (l in 2:length(detected_plants_after_monitoring_MPR)) {
+    detected_plants_after_monitoring_MPR[l] <- detected_plants_after_monitoring_MPR[l-1] + detection_factor_MPR[l]*
+      (symptomatic_plants_MPR[l] - detected_plants_after_monitoring_MPR[l-1])}
+```
+
+```{r}
+  symptomatic_plants_after_monitoring_MPR <- symptomatic_plants_MPR - detected_plants_after_monitoring_MPR
+```
+
+```{r}
+  for (m in 2:length(getting_again_sick_plants_MPR)) {
+    getting_again_sick_plants_MPR[m] <- getting_again_sick_plants_MPR[m-1] + disease_expansion_factor_MPR[m]*
+      (symptomatic_plants_after_monitoring_MPR[m] - getting_again_sick_plants_MPR[m-1])}
+```
+
+```{r}
+  all_symptomatic_plants_MPR <- symptomatic_plants_after_monitoring_MPR + getting_again_sick_plants_MPR
+```
+
+```{r}
+  for (n in 2:length(healthy_plants_after_fungus_fight_MPR)) {
+    healthy_plants_after_fungus_fight_MPR[n] <- healthy_plants_after_fungus_fight_MPR[n-1] + fungus_fight_effect_MPR[n]*
+      (all_symptomatic_plants_MPR[n] - healthy_plants_after_fungus_fight_MPR[n-1])}
+```
+
+We ran the simulation to generate the final number of infected plants, direct plant losses and actually marketable plants for **WatchReduce**.
+
+```{r}
+  final_fungus_infected_plants_MPR <- all_symptomatic_plants_MPR[12] - healthy_plants_after_fungus_fight_MPR[12]
+```
+
+```{r}
+  direct_plant_losses_MPR <- detected_plants_after_monitoring_MPR[12]
+```
+
+```{r}
+  actual_saleable_Callunas_MPR <- original_plant_number - (final_fungus_infected_plants_MPR + direct_plant_losses_MPR)
+```
+
+Then we defined the expected value for premium heather plants. The `chance_event` in the `decisionSupport` package simulates whether a premium price is achieved based on a certain probability. If arguments indicate that the chance of reaching a higher price is present, a premium price is selected. 
+
+```{r}
+value_of_saleable_more_sustainable_Calluna <- value_of_saleable_Calluna +
+    chance_event(chance_higher_price_sustainable, price_premium_sustainable, 0)
+```
+
+We computed the value of marketable heather for **Normal**.
+
+```{r}
+  value_saleable_plants_N <- actual_saleable_Callunas_N * value_of_saleable_Calluna
+```
+
+```{r}
+  value_of_sorted_out_plants_N <- direct_plant_losses_N * value_sorted_out_Calluna
+```
+
+```{r}
+  value_of_not_saleable_plants_N <- final_fungus_infected_plants_N * value_not_saleable_Calluna
+```
+
+We computed the value of marketable heather for **Reduce**.
+
+```{r}
+  value_saleable_plants_R <- actual_saleable_Callunas_R * value_of_saleable_more_sustainable_Calluna
+```
+
+```{r}
+  value_of_sorted_out_plants_R <- direct_plant_losses_R * value_sorted_out_Calluna
+```
+
+```{r}
+  value_of_not_saleable_plants_R <- final_fungus_infected_plants_R * value_not_saleable_Calluna
+```
+
+We computed the value of marketable heather for **Watch**.
+
+```{r}
+  value_saleable_plants_MPN <- actual_saleable_Callunas_MPN * value_of_saleable_Calluna
+```
+
+```{r}
+  value_of_sorted_out_plants_MPN <- direct_plant_losses_MPN * value_sorted_out_Calluna
+```
+
+```{r}  
+  value_of_not_saleable_plants_MPN <- final_fungus_infected_plants_MPN * value_not_saleable_Calluna
+```
+
+We computed the value of marketable heather for **WatchReduce**.
+
+```{r}
+  value_saleable_plants_MPR <- actual_saleable_Callunas_MPR * value_of_saleable_more_sustainable_Calluna
+```
+
+```{r}
+  value_of_sorted_out_plants_MPR <- direct_plant_losses_MPR * value_sorted_out_Calluna
+```
+
+```{r}
+  value_of_not_saleable_plants_MPR <- final_fungus_infected_plants_MPR * value_not_saleable_Calluna
+```
+
+Then we added up the yearly costs for **Normal**.
+
+```{r}  
+  costs_per_year_N <- (value_of_one_new_plant * original_plant_number) +
+    value_of_sorted_out_plants_N +
+    value_of_not_saleable_plants_N +
+    costs_yearly_prophy_application_N +
+    costs_normal_fertilizer * production_area +
+   (costs_monitoring_per_ha_month * sum(W) * production_area) +
+    costs_staff +
+    yearly_costs_of_direct_fungus_fight_N * production_area
+```
+
+Here we added up the benefits for **Normal**.
+
+```{r}  
+  benefits_per_year_N <- value_saleable_plants_N
+```  
+
+We simulated the general staff costs.
+
+```{r}
+  costs_staff <- ifelse(production_area > threshold_big_area_more_staff, costs_staff + 
+                          costs_more_staff, costs_staff)
+```  
+
+And we added up yearly costs for **Reduce**.
+
+```{r}
+  costs_per_year_R <- (value_of_one_new_plant * original_plant_number) +
+    value_of_sorted_out_plants_R +
+    value_of_not_saleable_plants_R +
+    costs_yearly_prophy_application_R +
+   (costs_normal_fertilizer + fertilizer_adjustment) * production_area +
+   (costs_monitoring_per_ha_month * sum(W) * production_area) +
+    additional_costs_more_monitoring_per_ha * production_area +
+    costs_staff +
+    yearly_costs_of_direct_fungus_fight_R * production_area
+```  
+
+We added up the benefits for **Reduce**.
+
+```{r}
+  benefits_per_year_R <- value_saleable_plants_R
+```  
+
+Here we added up yearly costs for **Watch**.
+
+```{r}
+  costs_per_year_MPN <- (value_of_one_new_plant * original_plant_number) +
+    value_of_sorted_out_plants_MPN +
+    value_of_not_saleable_plants_MPN +
+   (direct_plant_losses_MPN * amount_of_samples_MP * costs_per_sample_MP) +
+    costs_yearly_prophy_application_MPN +
+    costs_normal_fertilizer * production_area +
+   (costs_monitoring_plan_per_ha * production_area) +
+    costs_staff +
+    yearly_costs_of_direct_fungus_fight_N * production_area
+```
+
+Here we added up the benefits for **Watch**.
+
+```{r}
+  benefits_per_year_MPN <- value_saleable_plants_MPN + (savings_due_to_MP * production_area)
+```
+
+And here we added up yearly costs for **WatchReduce**.
+
+```{r}
+  costs_per_year_MPR <- (value_of_one_new_plant * original_plant_number) +
+    value_of_sorted_out_plants_MPR +
+    value_of_not_saleable_plants_MPR +
+   (direct_plant_losses_MPR * amount_of_samples_MP * costs_per_sample_MP) +
+    costs_yearly_prophy_application_MPR +
+   (costs_normal_fertilizer + fertilizer_adjustment) * production_area +
+   (costs_monitoring_plan_per_ha * production_area) +
+    additional_costs_more_monitoring_per_ha * production_area +
+    costs_staff +
+    yearly_costs_of_direct_fungus_fight_R * production_area
+```
+
+Then we added up the benefits for **WatchReduce**.
+
+```{r}
+  benefits_per_year_MPR <- value_saleable_plants_MPR + (savings_due_to_MP * production_area)
+```
+
+For all management strategies we subtracted the costs from the benefits. 
+
+```{r}
+  cashflow_N <- benefits_per_year_N - costs_per_year_N
+  cashflow_R <- benefits_per_year_R - costs_per_year_R
+  cashflow_MPN <- benefits_per_year_MPN - costs_per_year_MPN
+  cashflow_MPR <- benefits_per_year_MPR - costs_per_year_MPR
+```  
+
+To consider the relative merits of our stated management strategies, we compared each scenario and its outcomes with the **Normal** scenario.
+
+Our model outcomes are normalized by production area to ensure comparability of Monte Carlo simulation runs. We did not analyze comp_MPR_MPN, because we chose to compare all management options with the current established production practices. Growers usually decide on adopting innovative practices based on their relative merits compared to the practices that are currently used, not relative to a hypothetical baseline situation that does not exist at present. Furthermore, results of the comp_MPR_MPN comparison indicated a very low likelihood of positive outcomes. We still show the code for this comparison here, since we did calculate it, but we do not report on the results.
+
+```{r}
+  comp_R_N<-(cashflow_R-cashflow_N)/production_area
+  comp_MPR_N<-(cashflow_MPR-cashflow_N)/production_area
+  comp_MPN_N<-(cashflow_MPN-cashflow_N)/production_area
+  comp_MPR_MPN<-(cashflow_MPR-cashflow_MPN)/production_area
+```  
+
+At the end of the `Calluna_Simulation` function we listed all calculated outcomes.
+
+```{r eval=FALSE}
+  return(list(comp_R_N=comp_R_N,
+              comp_MPR_N=comp_MPR_N,
+              comp_MPN_N=comp_MPN_N,
+              comp_MPR_MPN=comp_MPR_MPN,
+              cashflow_N=cashflow_N,
+              cashflow_R=cashflow_R,
+              cashflow_MPR=cashflow_MPR,
+              cashflow_MPN=cashflow_MPN))}
+```
+
+Here we defined input table, legend file, results folder and figures folder.
+
+```{r eval=FALSE}
+input_table <- "Input_file.csv"
+legend_file <- "Legend_file.csv"
+results_folder <- "Results_low_prophy"
+figures_folder <- "EVPI_tables_low_prophy"
+```
+
+The `decisionSupport` function facilitated the start of the Monte Carlo simulation.
+
+```{r eval=FALSE}
+decisionSupport(input_table,
+                results_folder,
+                write_table = TRUE, Calluna_Simulation, 10000,
+                functionSyntax = "plainNames")
+```
+
+We produced all outcome variables with the `decisionSupport` function.
+Files which start with `cashflow_` refer to management options while `comp_` files refer to simulated decisions in comparison to current established production practices.
+
+```{r eval=FALSE}
+outvars <- list("comp_R_N","comp_MPR_N","comp_MPN_N","comp_MPR_MPN","cashflow_N","cashflow_R","cashflow_MPR","cashflow_MPN")
+legend_table <- read.csv(legend_file)
+
+labels <- list("comp_R_N","comp_MPR_N","comp_MPN_N","comp_MPR_MPN","cashflow_N","cashflow_R","cashflow_MPR","cashflow_MPN")
+```
+
+The `multi_EVPI` function is also part of the `decisionSupport` package and enables EVPI analysis by pointing out variables uncertainties.
+
+```{r eval=FALSE}
+MC_file <- read.csv(paste(results_folder,"/mcSimulationResults.csv",sep = ""))
+
+
+mc_EVPI <- MC_file[,-grep("cashflow",colnames(MC_file))]
+mc_EVPI <- MC_file
+multi_EVPI(mc = mc_EVPI,"comp_R_N",write_table = TRUE,outfolder = figures_folder)
+```
+
+# R function: Calluna_Simulation {#link}
+
+Here we present our code at one piece for an overview of all calculations.
+
+```{r eval=FALSE}
+
+library(decisionSupport)
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(ggpubr)
+library(ggstance)
+library(tidyverse)
+
+Calluna_Simulation <- function(x, varnames){
+  
+  original_plant_number <- production_area * plants_per_ha
+  W <- weather_arguments_for_infection <- c(0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0)
+  MPD <- c(0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0) 
+
+  risk_per_month <- vv(infection_risk, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+
+  fungus_probability_N <- vv(fungus_probability_N, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  detection_factor_N <- vv(detection_factor_N, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  disease_expansion_factor_N <- vv(disease_expansion_factor_N, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  fungus_fight_effect_N <- vv(fungus_fight_effect_N, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  fungus_probability_R <- vv(fungus_probability_R, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  detection_factor_R <- vv(detection_factor_R, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  disease_expansion_factor_R <- vv(disease_expansion_factor_R, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  fungus_fight_effect_R <- vv(fungus_fight_effect_R, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  fungus_probability_MPN <- vv(fungus_probability_N, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  detection_factor_MPN <- vv(detection_factor_MP, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  disease_expansion_factor_MPN <- vv(disease_expansion_factor_N, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  fungus_fight_effect_MPN <- vv(fungus_fight_effect_MP, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  fungus_probability_MPR <- vv(fungus_probability_R, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  detection_factor_MPR <- vv(detection_factor_MP, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  disease_expansion_factor_MPR <- vv(disease_expansion_factor_R, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  fungus_fight_effect_MPR <- vv(fungus_fight_effect_MP, var_CV, 12)* W %>%
+    sapply(., function(x) max(c(min(c(1,x)),0)))
+  
+  costs_yearly_prophy_application_N <- round((number_yearly_prophy_application_N),digits=0) * 
+    cost_one_prophy_application * production_area
+  
+  costs_yearly_prophy_application_R <- round((number_yearly_prophy_application_R),digits=0) * 
+    cost_one_prophy_application * production_area
+  
+  costs_yearly_prophy_application_MPN <- round((number_yearly_prophy_application_N),digits=0) * 
+    cost_one_prophy_application * production_area
+  
+  costs_yearly_prophy_application_MPR <- round((number_yearly_prophy_application_R),digits=0) * 
+    cost_one_prophy_application * production_area
+
+  need.random.integers <- function(a,b,n,k){
+    if (n*b<k) stop("k too large")
+    if (n*a>k) stop("k too small")
+    while(TRUE){
+      x <- sample(1:(k - n*a),n-1, replace = TRUE)
+      x <- sort(x)
+      x <- c(x,k-n*a) - c(0,x)
+      if(max(x) <= b-a) return(a+x)}}
+
+  effect_application_N <- need.random.integers(0, round((number_yearly_prophy_application_N), digits = 0),
+                                               4, round((number_yearly_prophy_application_N), digits = 0))* W
+  
+  effect_application_N <- effect_application_N %>%
+    replace(., effect_application_N==0, effect_no_prophy_application) %>%
+    replace(., effect_application_N==1, effect_one_prophy_application) %>%
+    replace(., effect_application_N==2, effect_two_prophy_application) %>%
+    replace(., effect_application_N==3, effect_three_prophy_application) %>%
+    replace(., effect_application_N==4, effect_four_prophy_application) %>%
+    replace(., effect_application_N==5, effect_five_prophy_application) %>%
+    replace(., effect_application_N==6, effect_six_prophy_application) %>%
+    replace(., effect_application_N==7, effect_seven_prophy_application) %>%
+    replace(., effect_application_N>=8, effect_eight_prophy_application) * W
+
+  effect_application_R <- need.random.integers(0, round((number_yearly_prophy_application_R), digits = 0),
+                                               4, round((number_yearly_prophy_application_R), digits = 0))* W
+
+  effect_application_R <- effect_application_R %>%
+    replace(., effect_application_R==0, effect_no_prophy_application) %>%
+    replace(., effect_application_R==1, effect_one_prophy_application) %>%
+    replace(., effect_application_R==2, effect_two_prophy_application) %>%
+    replace(., effect_application_R==3, effect_three_prophy_application) %>%
+    replace(., effect_application_R==4, effect_four_prophy_application) %>%
+    replace(., effect_application_R==5, effect_five_prophy_application) %>%
+    replace(., effect_application_R==6, effect_six_prophy_application) %>%
+    replace(., effect_application_R==7, effect_seven_prophy_application) %>%
+    replace(., effect_application_R>=8, effect_eight_prophy_application) * W
+
+  effect_application_MPN <- effect_application_N
+  effect_application_MPR <- effect_application_R
+  
+  infected_plant_number_N <- original_plant_number * risk_per_month
+  
+  not_infected_plants_after_prophy_N <- W
+  symptomatic_plants_N <- W
+  detected_plants_after_monitoring_N <- W
+  healthy_plants_after_fungus_fight_N <- W
+  getting_again_sick_plants_N <- W
+  
+  for (i in 2:length(infected_plant_number_N)){ 
+    infected_plant_number_N[i] <- infected_plant_number_N[i-1] + risk_per_month[i]*
+      (original_plant_number - infected_plant_number_N[i-1])}
+  
+  for (j in 2:length(not_infected_plants_after_prophy_N)) {
+    not_infected_plants_after_prophy_N[j] <- not_infected_plants_after_prophy_N[j-1] + effect_application_N[j]*
+      (infected_plant_number_N[j] - not_infected_plants_after_prophy_N[j-1])}
+  
+  still_infected_plants_N <- infected_plant_number_N - not_infected_plants_after_prophy_N
+  
+  for (k in 2:length(symptomatic_plants_N)) {
+    symptomatic_plants_N[k] <- symptomatic_plants_N[k-1] + fungus_probability_N[k]*
+      (still_infected_plants_N[k] - symptomatic_plants_N[k-1])}
+  
+  for (l in 2:length(detected_plants_after_monitoring_N)) {
+    detected_plants_after_monitoring_N[l] <- detected_plants_after_monitoring_N[l-1] + detection_factor_N[l]*
+      (symptomatic_plants_N[l] - detected_plants_after_monitoring_N[l-1])}
+  
+  symptomatic_plants_after_monitoring_N <- symptomatic_plants_N - detected_plants_after_monitoring_N
+  
+  for (m in 2:length(getting_again_sick_plants_N)) {
+    getting_again_sick_plants_N[m] <- getting_again_sick_plants_N[m-1] + disease_expansion_factor_N[m]*
+      (symptomatic_plants_after_monitoring_N[m] - getting_again_sick_plants_N[m-1])}
+  
+  all_symptomatic_plants_N <- symptomatic_plants_after_monitoring_N + getting_again_sick_plants_N
+  
+  for (n in 2:length(healthy_plants_after_fungus_fight_N)) {
+    healthy_plants_after_fungus_fight_N[n] <- healthy_plants_after_fungus_fight_N[n-1] + fungus_fight_effect_N[n]*
+      (all_symptomatic_plants_N[n] - healthy_plants_after_fungus_fight_N[n-1])}
+  
+  final_fungus_infected_plants_N <- all_symptomatic_plants_N[12] - healthy_plants_after_fungus_fight_N[12]
+  
+  direct_plant_losses_N <- detected_plants_after_monitoring_N[12]
+  
+  actual_saleable_Callunas_N <- original_plant_number - (final_fungus_infected_plants_N + direct_plant_losses_N)
+  
+  infected_plant_number_R <- original_plant_number * risk_per_month
+  
+  not_infected_plants_after_prophy_R <- W
+  symptomatic_plants_R <- W
+  detected_plants_after_monitoring_R <- W
+  healthy_plants_after_fungus_fight_R <- W
+  getting_again_sick_plants_R <- W
+  
+  for (i in 2:length(infected_plant_number_R)){
+    infected_plant_number_R[i] <- infected_plant_number_R[i-1] + risk_per_month[i]*
+      (original_plant_number - infected_plant_number_R[i-1])}
+  
+  for (j in 2:length(not_infected_plants_after_prophy_R)) {
+    not_infected_plants_after_prophy_R[j] <- not_infected_plants_after_prophy_R[j-1] + effect_application_R[j]*
+      (infected_plant_number_R[j] - not_infected_plants_after_prophy_R[j-1])}
+  
+  still_infected_plants_R <- infected_plant_number_R - not_infected_plants_after_prophy_R
+  
+  for (k in 2:length(symptomatic_plants_R)) {
+    symptomatic_plants_R[k] <- symptomatic_plants_R[k-1] + fungus_probability_R[k]*
+      (still_infected_plants_R[k] - symptomatic_plants_R[k-1])}
+  
+  for (l in 2:length(detected_plants_after_monitoring_R)) {
+    detected_plants_after_monitoring_R[l] <- detected_plants_after_monitoring_R[l-1] + detection_factor_R[l]*
+      (symptomatic_plants_R[l] - detected_plants_after_monitoring_R[l-1])}
+  
+  symptomatic_plants_after_monitoring_R <- symptomatic_plants_R - detected_plants_after_monitoring_R
+  
+  for (m in 2:length(getting_again_sick_plants_R)) {
+    getting_again_sick_plants_R[m] <- getting_again_sick_plants_R[m-1] + disease_expansion_factor_R[m]*
+      (symptomatic_plants_after_monitoring_R[m] - getting_again_sick_plants_R[m-1])}
+  
+  all_symptomatic_plants_R <- symptomatic_plants_after_monitoring_R + getting_again_sick_plants_R
+  
+  for (n in 2:length(healthy_plants_after_fungus_fight_R)) {
+    healthy_plants_after_fungus_fight_R[n] <- healthy_plants_after_fungus_fight_R[n-1] + fungus_fight_effect_R[n]*
+      (all_symptomatic_plants_R[n] - healthy_plants_after_fungus_fight_R[n-1])}
+  
+  final_fungus_infected_plants_R <- all_symptomatic_plants_R[12] - healthy_plants_after_fungus_fight_R[12]
+  
+  direct_plant_losses_R <- detected_plants_after_monitoring_R[12]
+  
+  actual_saleable_Callunas_R <- original_plant_number - (final_fungus_infected_plants_R + direct_plant_losses_R)
+  
+  infected_plant_number_MPN <- original_plant_number * risk_per_month
+  
+  not_infected_plants_after_prophy_MPN <- W
+  symptomatic_plants_MPN <- W
+  detected_plants_after_monitoring_MPN <- MPD
+  healthy_plants_after_fungus_fight_MPN <- W
+  getting_again_sick_plants_MPN <- W
+  
+  for (i in 2:length(infected_plant_number_MPN)){ 
+    infected_plant_number_MPN[i] <- infected_plant_number_MPN[i-1] + risk_per_month[i]*
+      (original_plant_number - infected_plant_number_MPN[i-1])}
+  
+  for (j in 2:length(not_infected_plants_after_prophy_MPN)) {
+    not_infected_plants_after_prophy_MPN[j] <- not_infected_plants_after_prophy_MPN[j-1] + effect_application_MPN[j]*
+      (infected_plant_number_MPN[j] - not_infected_plants_after_prophy_MPN[j-1])}
+  
+  still_infected_plants_MPN <- infected_plant_number_MPN - not_infected_plants_after_prophy_MPN
+  
+  for (k in 2:length(symptomatic_plants_MPN)) {
+    symptomatic_plants_MPN[k] <- symptomatic_plants_MPN[k-1] + fungus_probability_MPN[k]*
+      (still_infected_plants_MPN[k] - symptomatic_plants_MPN[k-1])}
+  
+  for (l in 2:length(detected_plants_after_monitoring_MPN)) {
+    detected_plants_after_monitoring_MPN[l] <- detected_plants_after_monitoring_MPN[l-1] + detection_factor_MPN[l]*
+      (symptomatic_plants_MPN[l] - detected_plants_after_monitoring_MPN[l-1])}
+  
+  symptomatic_plants_after_monitoring_MPN <- symptomatic_plants_MPN - detected_plants_after_monitoring_MPN
+  
+  for (m in 2:length(getting_again_sick_plants_MPN)) {
+    getting_again_sick_plants_MPN[m] <- getting_again_sick_plants_MPN[m-1] + disease_expansion_factor_MPN[m]*
+      (symptomatic_plants_after_monitoring_MPN[m] - getting_again_sick_plants_MPN[m-1])}
+  
+  all_symptomatic_plants_MPN <- symptomatic_plants_after_monitoring_MPN + getting_again_sick_plants_MPN
+  
+  for (n in 2:length(healthy_plants_after_fungus_fight_MPN)) {
+    healthy_plants_after_fungus_fight_MPN[n] <- healthy_plants_after_fungus_fight_MPN[n-1] + fungus_fight_effect_MPN[n]*
+      (all_symptomatic_plants_MPN[n] - healthy_plants_after_fungus_fight_MPN[n-1])}
+  
+  final_fungus_infected_plants_MPN <- all_symptomatic_plants_MPN[12] - healthy_plants_after_fungus_fight_MPN[12]
+  
+  direct_plant_losses_MPN <- detected_plants_after_monitoring_MPN[12]
+  
+  actual_saleable_Callunas_MPN <- original_plant_number - (final_fungus_infected_plants_MPN + direct_plant_losses_MPN)
+
+  infected_plant_number_MPR <- original_plant_number * risk_per_month
+  
+  not_infected_plants_after_prophy_MPR <- W
+  symptomatic_plants_MPR <- W
+  detected_plants_after_monitoring_MPR <- MPD
+  healthy_plants_after_fungus_fight_MPR <- W
+  getting_again_sick_plants_MPR <- W
+  
+  for (i in 2:length(infected_plant_number_MPR)){ 
+    infected_plant_number_MPR[i] <- infected_plant_number_MPR[i-1] + risk_per_month[i]*
+      (original_plant_number - infected_plant_number_MPR[i-1])}
+  
+  for (j in 2:length(not_infected_plants_after_prophy_MPR)) {
+    not_infected_plants_after_prophy_MPR[j] <- not_infected_plants_after_prophy_MPR[j-1] + effect_application_MPR[j]*
+      (infected_plant_number_MPR[j] - not_infected_plants_after_prophy_MPR[j-1])}
+  
+  still_infected_plants_MPR <- infected_plant_number_MPR - not_infected_plants_after_prophy_MPR
+  
+  for (k in 2:length(symptomatic_plants_MPR)) {
+    symptomatic_plants_MPR[k] <- symptomatic_plants_MPR[k-1] + fungus_probability_MPR[k]*
+      (still_infected_plants_MPR[k] - symptomatic_plants_MPR[k-1])}
+  
+  for (l in 2:length(detected_plants_after_monitoring_MPR)) {
+    detected_plants_after_monitoring_MPR[l] <- detected_plants_after_monitoring_MPR[l-1] + detection_factor_MPR[l]*
+      (symptomatic_plants_MPR[l] - detected_plants_after_monitoring_MPR[l-1])}
+  
+  symptomatic_plants_after_monitoring_MPR <- symptomatic_plants_MPR - detected_plants_after_monitoring_MPR
+  
+  for (m in 2:length(getting_again_sick_plants_MPR)) {
+    getting_again_sick_plants_MPR[m] <- getting_again_sick_plants_MPR[m-1] + disease_expansion_factor_MPR[m]*
+      (symptomatic_plants_after_monitoring_MPR[m] - getting_again_sick_plants_MPR[m-1])}
+  
+  all_symptomatic_plants_MPR <- symptomatic_plants_after_monitoring_MPR + getting_again_sick_plants_MPR
+  
+  for (n in 2:length(healthy_plants_after_fungus_fight_MPR)) {
+    healthy_plants_after_fungus_fight_MPR[n] <- healthy_plants_after_fungus_fight_MPR[n-1] + fungus_fight_effect_MPR[n]*
+      (all_symptomatic_plants_MPR[n] - healthy_plants_after_fungus_fight_MPR[n-1])}
+  
+  final_fungus_infected_plants_MPR <- all_symptomatic_plants_MPR[12] - healthy_plants_after_fungus_fight_MPR[12]
+  
+  direct_plant_losses_MPR <- detected_plants_after_monitoring_MPR[12]
+  
+  actual_saleable_Callunas_MPR <- original_plant_number - (final_fungus_infected_plants_MPR + direct_plant_losses_MPR)
+  
+  value_of_saleable_more_sustainable_Calluna <- value_of_saleable_Calluna +
+    chance_event(chance_higher_price_sustainable, price_premium_sustainable, 0)
+
+  value_saleable_plants_N <- actual_saleable_Callunas_N * value_of_saleable_Calluna
+  value_of_sorted_out_plants_N <- direct_plant_losses_N * value_sorted_out_Calluna
+  value_of_not_saleable_plants_N <- final_fungus_infected_plants_N * value_not_saleable_Calluna
+  
+  value_saleable_plants_R <- actual_saleable_Callunas_R * value_of_saleable_more_sustainable_Calluna
+  value_of_sorted_out_plants_R <- direct_plant_losses_R * value_sorted_out_Calluna
+  value_of_not_saleable_plants_R <- final_fungus_infected_plants_R * value_not_saleable_Calluna
+  
+  value_saleable_plants_MPN <- actual_saleable_Callunas_MPN * value_of_saleable_Calluna
+  value_of_sorted_out_plants_MPN <- direct_plant_losses_MPN * value_sorted_out_Calluna
+  value_of_not_saleable_plants_MPN <- final_fungus_infected_plants_MPN * value_not_saleable_Calluna
+  
+  value_saleable_plants_MPR <- actual_saleable_Callunas_MPR * value_of_saleable_more_sustainable_Calluna
+  value_of_sorted_out_plants_MPR <- direct_plant_losses_MPR * value_sorted_out_Calluna
+  value_of_not_saleable_plants_MPR <- final_fungus_infected_plants_MPR * value_not_saleable_Calluna
+  
+  costs_per_year_N <- (value_of_one_new_plant * original_plant_number) +
+    costs_yearly_prophy_application_N +
+    costs_normal_fertilizer * production_area +
+    (costs_monitoring_per_ha_month * sum(W) * production_area) +
+    costs_staff +
+    yearly_costs_of_direct_fungus_fight_N * production_area
+  
+  benefits_per_year_N <- value_saleable_plants_N
+  
+  costs_staff <- ifelse(production_area > threshold_big_area_more_staff, costs_staff + 
+                          costs_more_staff, costs_staff)
+  
+  costs_per_year_R <- (value_of_one_new_plant * original_plant_number) +
+    costs_yearly_prophy_application_R +
+    (costs_normal_fertilizer + fertilizer_adjustment) * production_area +
+    (costs_monitoring_per_ha_month * sum(W) * production_area) +
+    additional_costs_more_monitoring_per_ha * production_area +
+    costs_staff +
+    yearly_costs_of_direct_fungus_fight_R * production_area
+  
+  benefits_per_year_R <- value_saleable_plants_R
+  
+  costs_per_year_MPN <- (value_of_one_new_plant * original_plant_number) +
+    (direct_plant_losses_MPN * amount_of_samples_MP * costs_per_sample_MP) +
+    costs_yearly_prophy_application_MPN +
+    costs_normal_fertilizer * production_area +
+    (costs_monitoring_plan_per_ha * production_area) +
+    costs_staff +
+    yearly_costs_of_direct_fungus_fight_N * production_area
+  
+  benefits_per_year_MPN <- value_saleable_plants_MPN + (savings_due_to_MP * production_area)
+
+  costs_per_year_MPR <- (value_of_one_new_plant * original_plant_number) +
+    (direct_plant_losses_MPR * amount_of_samples_MP * costs_per_sample_MP) +
+    costs_yearly_prophy_application_MPR +
+    (costs_normal_fertilizer + fertilizer_adjustment) * production_area +
+    (costs_monitoring_plan_per_ha * production_area) +
+    additional_costs_more_monitoring_per_ha * production_area +
+    costs_staff +
+    yearly_costs_of_direct_fungus_fight_R * production_area
+  
+  benefits_per_year_MPR <- value_saleable_plants_MPR + (savings_due_to_MP * production_area)
+  
+  cashflow_N <- benefits_per_year_N - costs_per_year_N
+  cashflow_R <- benefits_per_year_R - costs_per_year_R
+  cashflow_MPN <- benefits_per_year_MPN - costs_per_year_MPN
+  cashflow_MPR <- benefits_per_year_MPR - costs_per_year_MPR
+
+  comp_R_N<-(cashflow_R-cashflow_N)/production_area
+  comp_MPR_N<-(cashflow_MPR-cashflow_N)/production_area
+  comp_MPN_N<-(cashflow_MPN-cashflow_N)/production_area
+  comp_MPR_MPN<-(cashflow_MPR-cashflow_MPN)/production_area
+  
+  return(list(comp_R_N=comp_R_N,
+              comp_MPR_N=comp_MPR_N,
+              comp_MPN_N=comp_MPN_N,
+              comp_MPR_MPN=comp_MPR_MPN,
+              cashflow_N=cashflow_N,
+              cashflow_R=cashflow_R,
+              cashflow_MPR=cashflow_MPR,
+              cashflow_MPN=cashflow_MPN))}
+
+
+input_table <- "Input_file.csv"
+legend_file <- "Legend_file.csv"
+results_folder <- "Results_low_prophy"
+figures_folder <- "EVPI_tables_low_prophy"
+
+make_variables <- function(est,n=1)
+{ x <- random(rho=est, n=n)
+for(i in colnames(x)) assign(i, as.numeric(x[1,i]),envir = .GlobalEnv)}
+make_variables(estimate_read_csv(input_table))
+dir.create(figures_folder)
+
+decisionSupport(input_table,
+                results_folder,
+                write_table = TRUE, Calluna_Simulation, 10000,
+                functionSyntax = "plainNames")
+
+outvars <- list("comp_R_N","comp_MPR_N","comp_MPN_N","comp_MPR_MPN","cashflow_N","cashflow_R","cashflow_MPR","cashflow_MPN")
+legend_table <- read.csv(legend_file)
+
+labels <- list("comp_R_N","comp_MPR_N","comp_MPN_N","comp_MPR_MPN","cashflow_N","cashflow_R","cashflow_MPR","cashflow_MPN")
+
+MC_file <- read.csv(paste(results_folder,"/mcSimulationResults.csv",sep = ""))
+
+
+mc_EVPI <- MC_file[,-grep("cashflow",colnames(MC_file))]
+mc_EVPI <- MC_file
+multi_EVPI(mc = mc_EVPI,"comp_R_N",write_table = TRUE,outfolder = figures_folder)
+```
+
+# Outcome distributions
+
+## Outcome distributions for management strategies
+
+The following plots are generated from the `mcSimulationResults.csv` from the `decisionSupport` function.
+We plotted probability distributions and merged them to illustrate the frequency of Monte Carlo simulation outcomes. Additionally, we integrated boxplots to compare Partial Farm Budget of **Watch**, **WatchReduce** and **Reduce and Normal**.
+
+For data visualization we applied the `ggplot2` [@wickhamGgplot2ElegantGraphics2016], `ggstance` [@henryGgstanceHorizontalGgplot22019] and `dplyr` [@wickhamDplyrGrammarData2019] packages. We used the function `ggarrange` from the `ggpubr` package [@kassambaraGgpubrGgplot2Based2019] to merge figures. 
+
+```{r, echo=FALSE}
+
+data<-read.csv("Results_low_prophy/mcSimulationResults.csv")
+data_plot_MPN<-dplyr::select(data, starts_with("cashflow_MPN")) %>%
+  stack(drop=FALSE)
+data_plot_MPN$values <- as.numeric(data_plot_MPN$values)
+plot_MPN <- ggplot(data_plot_MPN, aes(x = values, y = ind, fill = ind)) +
+  geom_density(aes(y=..scaled..), alpha = 0.5) +
+  scale_fill_manual(labels = ("Watch"), values = ("blue3") , guide="legend") +
+  geom_boxploth(aes(x = values, y = 0.1), width = 0.1, fill = "blue3" ) +
+  geom_abline(intercept = 0) +
+  scale_x_continuous(labels = scales::dollar_format(suffix = "", prefix = ""), limits = c(-240000, 340000)) +
+  ylim(breaks = c(0,1)) +
+  annotate("text", x = -150000, y = 0.75, label = 'atop(bold("Watch"))', size = 12, parse = TRUE, family="Times New Roman") +
+  theme(text=element_text(family="Times New Roman"),
+        axis.title.x=element_text(color = "white", margin = unit(c(9, 0, 2, 0), "mm")),
+        axis.title.y = element_text(color = "white",margin = unit(c(0, 1, 0, 0), "mm")),
+        axis.text.x=element_text(color = "white"),
+        axis.ticks.x=element_line(),
+        legend.title = element_blank(),
+        legend.position = "none",
+        legend.text = element_text(size=32),
+        axis.text = element_text(size=32),
+        axis.title = element_text(size=32,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank()) +
+  xlab("Net benefit (Partial Farm Budget; Euros)")+ 
+  ylab("Frequency") 
+``` 
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+data<-read.csv("Results_low_prophy/mcSimulationResults.csv")
+data_plot_MPR<-dplyr::select(data, starts_with("cashflow_MPR")) %>%
+  stack(drop=FALSE)
+data_plot_MPR$values <- as.numeric(data_plot_MPR$values) 
+plot_MPR <- ggplot(data_plot_MPR, aes(x = values, y = ind, fill = ind)) +
+  geom_density(aes(y=..scaled..), alpha = 0.5) +
+  scale_fill_manual(labels = ("WatchReduce"), values = c("green3"),guide="legend") +
+  geom_boxploth(aes(x = values, y = 0.1), width = 0.1, fill = "green3" ) +
+  geom_abline(intercept = 0) +
+  scale_x_continuous(labels = scales::dollar_format(suffix = "", prefix = ""), limits = c(-240000, 340000)) +
+  ylim(breaks = c(0,1)) +
+  annotate("text", x = -150000, y = 0.75, label = 'atop(bold("WatchReduce"))', size = 12, parse = TRUE, family = "Times New Roman") +
+  theme(text=element_text(family="Times New Roman"),
+        axis.title.x=element_text(color = "white", margin = unit(c(9, 0, 2, 0), "mm")),
+        axis.title.y = element_text(color = "white", margin = unit(c(0, 1, 0, 0), "mm")),
+        axis.text.x=element_text(color = "white"),
+        axis.ticks.x=element_line(),
+        legend.title = element_blank(),
+        legend.position = "none",
+        legend.text = element_text(size=32),
+        axis.text = element_text(size=32),
+        axis.title = element_text(size=32,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank()) +
+  xlab("Net benefit (Partial Farm Budget; Euros)")+ 
+  ylab("Frequency") 
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+data<-read.csv("Results_low_prophy/mcSimulationResults.csv")
+data_plot_R<-dplyr::select(data, starts_with("cashflow_R")) %>%
+  stack(drop=FALSE)
+data_plot_R$values <- as.numeric(data_plot_R$values) 
+plot_R <- ggplot(data_plot_R, aes(x = values, y = ind, fill = ind)) +
+  geom_density(aes(y=..scaled..), alpha = 0.5) +
+  scale_fill_manual(labels = ("Reduce"), values = ("red3"),guide="legend") +
+  geom_boxploth(aes(x = values, y = 0.1), width = 0.1, fill = "red3" ) +
+  geom_abline(intercept = 0) +
+  scale_x_continuous(labels = scales::dollar_format(suffix = "", prefix = ""), limits = c(-240000, 340000)) +
+  ylim(breaks = c(0,1)) +
+  annotate("text", x = -150000, y = 0.75, label = 'atop(bold("Reduce"))', size = 12, parse = TRUE, family = "Times New Roman") +
+  theme(text=element_text(family="Times New Roman"),
+        axis.title.x = element_text(color = "white", margin = unit(c(9, 0, 2, 0), "mm")),
+        axis.title.y = element_text(color = "white", margin = unit(c(0, 1, 0, 0), "mm")),
+        axis.text.x=element_text(color = "white"),
+        axis.ticks.x=element_line(),
+        legend.title = element_blank(),
+        legend.position = "none",
+        legend.text = element_text(size=32),
+        axis.text = element_text(size=32),
+        axis.title = element_text(size=32,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank()) +
+  xlab("Net benefit (Partial Farm Budget; Euros)")+ 
+  ylab("Frequency") 
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+data<-read.csv("Results_low_prophy/mcSimulationResults.csv")
+data_plot_N<-dplyr::select(data, starts_with("cashflow_N")) %>%
+  stack(drop=FALSE)
+data_plot_N$values <- as.numeric(data_plot_N$values) 
+plot_N <- ggplot(data_plot_N, aes(x = values, y = ind, fill = ind)) +
+  geom_density(aes(y=..scaled..), alpha = 0.5) +
+  scale_fill_manual(labels = ("Normal"), values = ("magenta3"),guide="legend") +
+  geom_boxploth(aes(x = values, y = 0.1), width = 0.1, fill = "magenta3" ) +
+  geom_abline(intercept = 0) +
+  scale_x_continuous(labels = scales::dollar_format(suffix = "", prefix = ""), limits = c(-240000, 340000)) +
+  ylim(breaks = c(0,1)) +
+  annotate("text", x = -150000, y = 0.75, label = 'atop(bold("Normal"))', size = 12, parse = TRUE, family = "Times New Roman") +
+  theme(text=element_text(family="Times New Roman"),
+        axis.title.x=element_text(margin = unit(c(9, 0, 2, 0), "mm")),
+        axis.title.y = element_text(color = "white", margin = unit(c(0, 1, 0, 0), "mm")),
+        legend.title = element_blank(),
+        axis.ticks.x=element_line(),
+        legend.position = "none",
+        legend.text = element_text(size=32),
+        axis.text = element_text(size=32),
+        axis.title = element_text(size=32,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank()) +
+  xlab("Net benefit (Partial Farm Budget; Euros)")+ 
+  ylab("Frequency")  
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+merge_plot_of_geom_density_4 <- ggarrange(plot_MPN, plot_MPR, plot_R, plot_N, ncol = 1, nrow = 4)
+
+merge_plot_of_geom_density_4 <- annotate_figure(merge_plot_of_geom_density_4,
+                                left = text_grob("Scaled density", color = "black", rot = 90,
+                                                 face = "bold", size =32, family = "Times"))
+```
+
+```{r merge_plot_of_geom_density_4, echo=FALSE, fig.height=16, fig.width=14}
+merge_plot_of_geom_density_4
+```
+Probability density distributions (scaled density among 10,000 runs of a Monte Carlo simulation) of Partial Farm Budgets (Euros) for four heather production management strategies on an area of one hectare. Watch = Monitoring Plan and normal prophylactic pesticide application. WatchReduce = Monitoring Plan and reduced prophylactic pesticide application. Reduce = Reduced prophylactic pesticide application. Normal = Normal prophylactic pesticide application. 
+
+## Outcome distributions for management decisions
+
+Comparison of Partial Farm Budget of **WatchMore**, **WatchMoreSprayLess** and **SprayLess**.
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+data<-read.csv("Results_low_prophy/mcSimulationResults.csv")
+data_WatchMore<-dplyr::select(data, starts_with("comp_MPN_N")) %>%
+  stack(drop=FALSE)
+data_WatchMore$values <- as.numeric(data_WatchMore$values) 
+plot_WatchMore <- ggplot(data_WatchMore, aes(x = values, y = ind, fill = ind)) +
+  geom_density(aes(y=..scaled..), alpha = 0.5) +
+  scale_fill_manual(labels = ("WatchMore"), values = ("blue4"),guide="legend") +
+  geom_boxploth(aes(x = values, y = 0.1), width = 0.1, fill = "blue4" ) +
+  geom_vline(aes(xintercept = 0)) +
+  scale_x_continuous(labels = scales::dollar_format(suffix = "", prefix = ""), limits = c(-204000, 120000)) +
+  ylim(breaks = c(0,1)) +
+  annotate("text", x = -120000, y = 0.75, label = 'atop(bold("WatchMore"))', size = 12, parse = TRUE, family = "Times New Roman") +
+  theme(text=element_text(family="Times New Roman"),
+        axis.title.x=element_text(color = "white",margin = unit(c(9, 0, 2, 0), "mm")),
+        axis.title.y = element_text(color = "white", margin = unit(c(0, 1, 0, 0), "mm")),
+        axis.text.x=element_text(color = "white"),
+        axis.ticks.x=element_line(),
+        legend.title = element_blank(),
+        legend.position = "none",
+        legend.text = element_text(size=34),
+        axis.text = element_text(size=34),
+        axis.title = element_text(size=34,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank()) +
+  xlab("Net benefit (Partial Farm Budget; Euros)")+ 
+  ylab("Fre") 
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+data<-read.csv("Results_low_prophy/mcSimulationResults.csv")
+data_WatchMoreSprayLess<-dplyr::select(data, starts_with("comp_MPR_N")) %>%
+  stack(drop=FALSE)
+data_WatchMoreSprayLess$values <- as.numeric(data_WatchMoreSprayLess$values) 
+plot_WatchMoreSprayLess <- ggplot(data_WatchMoreSprayLess, aes(x = values, y = ind, fill = ind)) +
+  geom_density(aes(y=..scaled..), alpha = 0.5) +
+  scale_fill_manual(labels = ("WatchMoreSprayLess"), values = ("green4"),guide="legend") +
+  geom_boxploth(aes(x = values, y = 0.1), width = 0.1, fill = "green4" ) +
+  geom_vline(aes(xintercept = 0)) +
+  scale_x_continuous(labels = scales::dollar_format(suffix = "", prefix = ""), limits = c(-204000, 120000)) +
+  ylim(breaks = c(0,1)) +
+  annotate("text", x = -120000, y = 0.75, label = 'atop(bold("WatchMoreSprayLess"))', size = 12, parse = TRUE, family = "Times New Roman") +
+  theme(text=element_text(family="Times New Roman"),
+        axis.title.x=element_text(color = "white", margin = unit(c(9, 0, 2, 0), "mm")),
+        axis.title.y = element_text(color = "white", margin = unit(c(0, 1, 0, 0), "mm")),
+        axis.text.x=element_text(color = "white"),
+        axis.ticks.x=element_line(),
+        legend.title = element_blank(),
+        legend.position = "none",
+        legend.text = element_text(size=34),
+        axis.text = element_text(size=34),
+        axis.title = element_text(size=34,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank()) +
+  xlab("Net benefit (Partial Farm Budget; Euros)")+ 
+  ylab("Fre") 
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+data<-read.csv("Results_low_prophy/mcSimulationResults.csv")
+data_SprayLess<-dplyr::select(data, starts_with("comp_R_N")) %>%
+  stack(drop=FALSE)
+data_SprayLess$values <- as.numeric(data_SprayLess$values) 
+plot_SprayLess <- ggplot(data_SprayLess, aes(x = values, y = ind, fill = ind)) +
+  geom_density(aes(y=..scaled..), alpha = 0.5) +
+  scale_fill_manual(labels = ("SprayLess"), values = ("red4"),guide="legend") +
+  geom_boxploth(aes(x = values, y = 0.1), width = 0.1, fill = "red4" ) +
+  geom_vline(aes(xintercept = 0)) +
+  scale_x_continuous(labels = scales::dollar_format(suffix = "", prefix = ""), limits = c(-204000, 120000)) +
+  ylim(breaks = c(0,1)) +
+  annotate("text", x = -120000, y = 0.75, label = 'atop(bold("SprayLess"))', size = 12, parse = TRUE, family = "Times New Roman") +
+  theme(text=element_text(family="Times New Roman"),
+        axis.title.x=element_text(margin = unit(c(9, 0, 2, 0), "mm")),
+        axis.title.y = element_text(color = "white", margin = unit(c(0, 1, 0, 0), "mm")),
+        legend.title = element_blank(),
+        legend.position = "none",
+        legend.text = element_text(size=34),
+        axis.text = element_text(size=34),
+        axis.title = element_text(size=34,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank()) +
+  xlab("Net benefit (Partial Farm Budget; Euros)")+ 
+  ylab("Fre")
+```
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+merge_plot_of_geom_density_3 <- ggarrange(plot_WatchMore, plot_WatchMoreSprayLess, plot_SprayLess, ncol = 1, nrow = 3)
+
+merge_plot_of_geom_density_3 <- annotate_figure(merge_plot_of_geom_density_3,
+                                                left = text_grob("Scaled density", color = "black",
+                                                                 rot = 90, face = "bold", size =32, family = "Times"))
+```
+
+```{r merge_plot_of_geom_density_3, echo=FALSE, fig.height=16, fig.width=14}
+merge_plot_of_geom_density_3
+```
+Probability density distributions (scaled density among 10,000 runs of a Monte Carlo simulation) of Partial Farm Budgets (Euros) for a heather production area of one hectare for three decision options for heather production. WatchMore = Improved monitoring combined with normal prophylactic application compared to current standard practices. WatchMoreSprayLess = Monitoring combined with reduced pesticide application compared to standard practices. SprayLess = Reduced prophylactic pesticide application compared to standard practice, in a system without improved monitoring.
+
+ 
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+EVPI_data_R_N<-read.csv("EVPI_tables_low_prophy/EVPI_table_comp_R_N.csv", header = TRUE) %>%
+  data.frame(.) %>%
+  .[order(-.$EVPI_dont),] %>%
+  subset(.,EVPI_dont>0)
+
+colnames(EVPI_data_R_N)[colnames(EVPI_data_R_N)=="EVPI_dont"] <- "EVPI"
+colnames(EVPI_data_R_N)[colnames(EVPI_data_R_N)=="variable"] <- "Variable"
+EVPI_data_R_N$Variable <- as.character(EVPI_data_R_N$Variable) 
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "infection_risk"] <- "Infection risk"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "number_yearly_prophy_application_R"] <- "Reduce: Preventive applications"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "fungus_probability_R"] <- "Reduce: Fungus occurrence"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "value_of_saleable_Calluna"] <- "Sellable heather"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "threshold_big_area_more_staff"] <- "Threshold more staff"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "detection_factor_R"] <- "Reduce: Detection rate"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "detection_factor_MP"] <- "Watch: Detection rate"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "detection_factor_N"] <- "Normal: Detection rate"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "number_yearly_prophy_application_N"] <- "Normal: Preventive applications"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "fungus_fight_effect_N"] <- "Normal: Effect of applications"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "fungus_fight_effect_R"] <- "Reduce: Effect of applications"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "fungus_fight_effect_MP"] <- "Watch: Effect of applications"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "price_premium_sustainable"] <- "Reduce: More sustainable Calluna"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "savings_due_to_MP"] <- "Savings monitoring plan"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "costs_monitoring_plan_per_ha"] <- "Watch: Monitoring costs"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "amount_of_samples_MP"] <- "Watch: Number of samples"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "chance_higher_price_sustainable"] <- "Reduce: Chance of for higher price"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "costs_more_staff"] <- "Costs for more staff"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "costs_normal_fertilizer"] <- "Normal: Fertilizer costs"
+EVPI_data_R_N$Variable[EVPI_data_R_N$Variable == "costs_monitoring_per_ha_month"] <- "Normal: Monitoring costs"
+
+EVPI_data_R_N <- EVPI_data_R_N[order(EVPI_data_R_N$EVPI), ] 
+EVPI_data_R_N$Variable <- factor(EVPI_data_R_N$Variable, levels = EVPI_data_R_N$Variable)
+EVPI_data_R_N$EVPI <- round(EVPI_data_R_N$EVPI, digits= 2) %>%
+                      sprintf('%.2f', .) %>%
+                      as.numeric(.)
+
+EVPI_barplot_R_N <- ggplot(EVPI_data_R_N, aes(Variable, EVPI, fill = EVPI, label = EVPI)) +
+  geom_bar(width = 1, stat = "identity", color = "black") +
+  ggtitle("SprayLess: Information Value" , subtitle = "Result probably negative") +
+  theme_bw()+theme(panel.grid=element_blank())+
+  coord_flip()+
+  scale_fill_gradient(low = "ivory2", high = "purple") +
+  scale_y_continuous(limits = c(0, 2500)) +
+  theme(text=element_text(family="Times New Roman"),
+        plot.subtitle = element_text(color = "red", size = 15, face = "bold"),
+        plot.title = element_text(color = "black", size = 15, face = "bold"),
+        axis.title.y = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_blank(),
+        legend.position = "none",
+        axis.title.x=element_text(),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank()) 
+
+VIP_table_comp_R_N <- read.csv("./Results_low_prophy/comp_R_N_pls_results.csv",
+                               header = TRUE) %>%
+  
+  data.frame(.) %>%
+  .[order(-.$VIP),] %>%
+  head(., 8) 
+
+colnames(VIP_table_comp_R_N)[colnames(VIP_table_comp_R_N)=="X"] <- "Variable"
+
+VIP_table_comp_R_N$Variable <- as.character(VIP_table_comp_R_N$Variable) 
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "infection_risk"] <- "Infection risk"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "number_yearly_prophy_application_R"] <- "Reduce: Preventive applications"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "fungus_probability_R"] <- "Reduce: Fungus occurrence"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "value_of_saleable_Calluna"] <- "Sellable heather"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "threshold_big_area_more_staff"] <- "Threshold more staff"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "detection_factor_R"] <- "Reduce: Detection rate"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "detection_factor_MP"] <- "Watch: Detection rate"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "detection_factor_N"] <- "Normal: Detection rate"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "number_yearly_prophy_application_N"] <- "Normal: Preventive applications"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "fungus_fight_effect_N"] <- "Normal: Effect of applications"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "fungus_fight_effect_R"] <- "Reduce: Effect of applications"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "fungus_fight_effect_MP"] <- "Watch: Effect of applications"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "price_premium_sustainable"] <- "Reduce: More sustainable Calluna"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "savings_due_to_MP"] <- "Savings monitoring plan"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "costs_monitoring_plan_per_ha"] <- "Watch: Monitoring costs"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "amount_of_samples_MP"] <- "Watch: Number of samples"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "chance_higher_price_sustainable"] <- "Reduce: Chance of for higher price"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "costs_more_staff"] <- "Costs for more staff"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "costs_normal_fertilizer"] <- "Normal: Fertilizer costs"
+VIP_table_comp_R_N$Variable[VIP_table_comp_R_N$Variable == "costs_monitoring_per_ha_month"] <- "Normal: Monitoring costs"
+
+VIP_table_comp_R_N <- VIP_table_comp_R_N[order(VIP_table_comp_R_N$VIP), ]  
+VIP_table_comp_R_N$Variable <- factor(VIP_table_comp_R_N$Variable, levels = VIP_table_comp_R_N$Variable)
+VIP_table_comp_R_N$VIP <- round(VIP_table_comp_R_N$VIP, digits= 2)%>%
+                          sprintf('%.2f', .) %>%
+                          as.numeric(.)
+
+VIP_table_comp_R_N$color <- ifelse(VIP_table_comp_R_N$Coefficient>0, "forestgreen", "firebrick3")
+VIP_table_comp_R_N$color <- as.character(VIP_table_comp_R_N$color)
+
+VIP_barplot_comp_R_N <- ggplot(VIP_table_comp_R_N, aes(Variable, VIP, label = VIP, fill = VIP)) +
+  geom_bar(width = 1, stat = "identity", color = "black", fill = VIP_table_comp_R_N$color) +
+  ggtitle("Subtitle", subtitle = "SprayLess: Variable Importance") +
+  theme_bw()+theme(panel.grid=element_blank())+
+  coord_flip()+
+  scale_y_continuous(limits = c(0, 5)) +
+  theme(text=element_text(family="Times New Roman"),
+        plot.subtitle = element_text(color = "black", size = 15, face = "bold"),
+        plot.title = element_text(color = "white", size = 15, face = "bold"),
+        axis.title.y = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_blank(),
+        legend.position = "none",
+        axis.title.x=element_text(),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank())
+
+EVPI_data_MPN_N<-read.csv("EVPI_tables_low_prophy/EVPI_table_comp_MPN_N.csv", header = TRUE) %>%
+  data.frame(.) %>%
+  .[order(-.$EVPI_do),] %>%
+  subset(.,EVPI_do>0)
+
+colnames(EVPI_data_MPN_N)[colnames(EVPI_data_MPN_N)=="variable"] <- "Variable"
+colnames(EVPI_data_MPN_N)[colnames(EVPI_data_MPN_N)=="EVPI_do"] <- "EVPI"
+
+EVPI_data_MPN_N$Variable <- as.character(EVPI_data_MPN_N$Variable) 
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "infection_risk"] <- "Infection risk"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "number_yearly_prophy_application_R"] <- "Reduce: Preventive applications"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "fungus_probability_R"] <- "Reduce: Fungus occurrence"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "value_of_saleable_Calluna"] <- "Sellable heather"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "threshold_big_area_more_staff"] <- "Threshold more staff"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "detection_factor_R"] <- "Reduce: Detection rate"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "detection_factor_MP"] <- "Watch: Detection rate"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "detection_factor_N"] <- "Normal: Detection rate"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "number_yearly_prophy_application_N"] <- "Normal: Preventive applications"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "fungus_fight_effect_N"] <- "Normal: Effect of applications"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "fungus_fight_effect_R"] <- "Reduce: Effect of applications"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "fungus_fight_effect_MP"] <- "Watch: Effect of applications"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "price_premium_sustainable"] <- "Reduce: More sustainable Calluna"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "savings_due_to_MP"] <- "Savings monitoring plan"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "costs_monitoring_plan_per_ha"] <- "Watch: Monitoring costs"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "amount_of_samples_MP"] <- "Watch: Number of samples"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "chance_higher_price_sustainable"] <- "Reduce: Chance of for higher price"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "costs_more_staff"] <- "Costs for more staff"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "costs_normal_fertilizer"] <- "Normal: Fertilizer costs"
+EVPI_data_MPN_N$Variable[EVPI_data_MPN_N$Variable == "costs_monitoring_per_ha_month"] <- "Normal: Monitoring costs"
+
+EVPI_data_MPN_N <- EVPI_data_MPN_N[order(EVPI_data_MPN_N$EVPI), ] 
+EVPI_data_MPN_N$Variable <- factor(EVPI_data_MPN_N$Variable, levels = EVPI_data_MPN_N$Variable)
+EVPI_data_MPN_N$EVPI <- round(EVPI_data_MPN_N$EVPI, digits= 2) %>%
+                        sprintf('%.2f', .) %>%
+                        as.numeric(.)
+
+EVPI_barplot_MPN_N <- ggplot(EVPI_data_MPN_N, aes(Variable, EVPI, fill = EVPI, label = EVPI)) +
+  geom_bar(width = 1, stat = "identity", color = "black") +
+  ggtitle("WatchMore: Information Value", subtitle = "Result probably positive") +
+  theme_bw()+theme(panel.grid=element_blank())+
+  coord_flip()+
+  scale_fill_gradient(low = "ivory2", high = "purple") +
+  scale_y_continuous(limits = c(0, 2500)) +
+  theme(text=element_text(family="Times New Roman"),
+        plot.subtitle = element_text(color = "darkgreen", size = 15, face = "bold"),
+        plot.title = element_text(color = "black", size = 15, face = "bold"),
+        axis.title.y = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_blank(),
+        legend.position = "none",
+        axis.title.x=element_text(),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank())
+
+
+VIP_table_comp_MPN_N <- read.csv("./Results_low_prophy/comp_MPN_N_pls_results.csv",
+                                 header = TRUE) %>%
+  
+  data.frame(.) %>%
+  .[order(-.$VIP),] %>%
+  head(., 8)
+
+colnames(VIP_table_comp_MPN_N)[colnames(VIP_table_comp_MPN_N)=="X"] <- "Variable"
+
+VIP_table_comp_MPN_N$Variable <- as.character(VIP_table_comp_MPN_N$Variable) 
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "infection_risk"] <- "Infection risk"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "number_yearly_prophy_application_R"] <- "Reduce: Preventive applications"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "fungus_probability_R"] <- "Reduce: Fungus occurrence"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "value_of_saleable_Calluna"] <- "Sellable heather"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "threshold_big_area_more_staff"] <- "Threshold more staff"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "detection_factor_R"] <- "Reduce: Detection rate"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "detection_factor_MP"] <- "Watch: Detection rate"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "detection_factor_N"] <- "Normal: Detection rate"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "number_yearly_prophy_application_N"] <- "Normal: Preventive applications"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "fungus_fight_effect_N"] <- "Normal: Effect of applications"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "fungus_fight_effect_R"] <- "Reduce: Effect of applications"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "fungus_fight_effect_MP"] <- "Watch: Effect of applications"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "price_premium_sustainable"] <- "Reduce: More sustainable Calluna"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "savings_due_to_MP"] <- "Savings monitoring plan"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "costs_monitoring_plan_per_ha"] <- "Watch: Monitoring costs"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "amount_of_samples_MP"] <- "Watch: Number of samples"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "chance_higher_price_sustainable"] <- "Reduce: Chance of for higher price"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "costs_more_staff"] <- "Costs for more staff"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "costs_normal_fertilizer"] <- "Normal: Fertilizer costs"
+VIP_table_comp_MPN_N$Variable[VIP_table_comp_MPN_N$Variable == "costs_monitoring_per_ha_month"] <- "Normal: Monitoring costs"
+
+VIP_table_comp_MPN_N <- VIP_table_comp_MPN_N[order(VIP_table_comp_MPN_N$VIP), ]
+VIP_table_comp_MPN_N$Variable <- factor(VIP_table_comp_MPN_N$Variable, levels = VIP_table_comp_MPN_N$Variable)
+VIP_table_comp_MPN_N$VIP <- round(VIP_table_comp_MPN_N$VIP, digits= 2)%>%
+                            sprintf('%.2f', .) %>%
+                            as.numeric(.)
+
+VIP_table_comp_MPN_N$color <- ifelse(VIP_table_comp_MPN_N$Coefficient>0, "forestgreen", "firebrick3")
+VIP_table_comp_MPN_N$color <- as.character(VIP_table_comp_MPN_N$color)
+
+VIP_barplot_comp_MPN_N <- ggplot(VIP_table_comp_MPN_N, aes(Variable, VIP, fill = VIP, label = VIP)) +
+  geom_bar(width = 1, stat = "identity", color = "black", fill = VIP_table_comp_MPN_N$color) +
+  ggtitle("Subtitle", subtitle = "WatchMore: Variable Importance") +
+  theme_bw()+theme(panel.grid=element_blank())+
+  coord_flip()+
+  scale_y_continuous(limits = c(0, 5)) +
+  theme(text=element_text(family="Times New Roman"),
+        plot.subtitle = element_text(color = "black", size = 15, face = "bold"),
+        plot.title = element_text(color = "white", size = 15, face = "bold"),
+        axis.title.y = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_blank(),
+        legend.position = "none",
+        axis.title.x=element_text(),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank())
+
+EVPI_data_MPR_N<-read.csv("EVPI_tables_low_prophy/EVPI_table_comp_MPR_N.csv", header = TRUE) %>%
+  data.frame(.) %>%
+  .[order(-.$EVPI_dont),] %>%
+  subset(.,EVPI_dont>0)
+
+colnames(EVPI_data_MPR_N)[colnames(EVPI_data_MPR_N)=="variable"] <- "Variable"
+colnames(EVPI_data_MPR_N)[colnames(EVPI_data_MPR_N)=="EVPI_dont"] <- "EVPI"
+EVPI_data_MPR_N$Variable <- as.character(EVPI_data_MPR_N$Variable) 
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "infection_risk"] <- "Infection risk"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "number_yearly_prophy_application_R"] <- "Reduce: Preventive applications"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "fungus_probability_R"] <- "Reduce: Fungus occurrence"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "value_of_saleable_Calluna"] <- "Sellable heather"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "threshold_big_area_more_staff"] <- "Threshold more staff"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "detection_factor_R"] <- "Reduce: Detection rate"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "detection_factor_MP"] <- "Watch: Detection rate"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "detection_factor_N"] <- "Normal: Detection rate"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "number_yearly_prophy_application_N"] <- "Normal: Preventive applications"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "fungus_fight_effect_N"] <- "Normal: Effect of applications"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "fungus_fight_effect_R"] <- "Reduce: Effect of applications"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "fungus_fight_effect_MP"] <- "Watch: Effect of applications"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "price_premium_sustainable"] <- "Reduce: More sustainable Calluna"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "savings_due_to_MP"] <- "Savings monitoring plan"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "costs_monitoring_plan_per_ha"] <- "Watch: Monitoring costs"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "amount_of_samples_MP"] <- "Watch: Number of samples"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "chance_higher_price_sustainable"] <- "Reduce: Chance of for higher price"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "costs_more_staff"] <- "Costs for more staff"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "costs_normal_fertilizer"] <- "Normal: Fertilizer costs"
+EVPI_data_MPR_N$Variable[EVPI_data_MPR_N$Variable == "costs_monitoring_per_ha_month"] <- "Normal: Monitoring costs"
+
+EVPI_data_MPR_N <- EVPI_data_MPR_N[order(EVPI_data_MPR_N$EVPI), ] 
+EVPI_data_MPR_N$Variable <- factor(EVPI_data_MPR_N$Variable, levels = EVPI_data_MPR_N$Variable)
+EVPI_data_MPR_N$EVPI <- round(EVPI_data_MPR_N$EVPI, digits= 2) %>%
+                        sprintf('%.2f', .) %>%
+                        as.numeric(.)
+
+EVPI_barplot_MPR_N <- ggplot(EVPI_data_MPR_N, aes(Variable, EVPI, fill = EVPI, label = EVPI)) +
+  geom_bar(width = 1, stat = "identity", color = "black") +
+  ggtitle("WatchMoreSprayLess: Information Value", subtitle = "Result probably negative") +
+  theme_bw()+theme(panel.grid=element_blank())+
+  coord_flip()+
+  scale_fill_gradient(low = "ivory2", high = "purple") +
+  scale_y_continuous(limits = c(0, 2500)) +
+  theme(text=element_text(family="Times New Roman"),
+        plot.subtitle = element_text(color = "red", size = 15, face = "bold"),
+        plot.title = element_text(color = "black", size = 15, face = "bold"),
+        axis.title.y = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_blank(),
+        legend.position = "none",
+        axis.title.x = element_text(),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank())
+
+VIP_table_comp_MPR_N <- read.csv("./Results_low_prophy/comp_MPR_N_pls_results.csv",
+                                 header = TRUE) %>%
+  
+  data.frame(.) %>%
+  .[order(-.$VIP),] %>%
+  head(., 8)
+
+colnames(VIP_table_comp_MPR_N)[colnames(VIP_table_comp_MPR_N)=="X"] <- "Variable"
+
+VIP_table_comp_MPR_N$Variable <- as.character(VIP_table_comp_MPR_N$Variable) 
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "infection_risk"] <- "Infection risk"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "number_yearly_prophy_application_R"] <- "Reduce: Preventive applications"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "fungus_probability_R"] <- "Reduce: Fungus occurrence"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "value_of_saleable_Calluna"] <- "Sellable heather"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "threshold_big_area_more_staff"] <- "Threshold more staff"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "detection_factor_R"] <- "Reduce: Detection rate"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "detection_factor_MP"] <- "Watch: Detection rate"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "detection_factor_N"] <- "Normal: Detection rate"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "number_yearly_prophy_application_N"] <- "Normal: Preventive applications"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "fungus_fight_effect_N"] <- "Normal: Effect of applications"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "fungus_fight_effect_R"] <- "Reduce: Effect of applications"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "fungus_fight_effect_MP"] <- "Watch: Effect of applications"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "price_premium_sustainable"] <- "Reduce: More sustainable Calluna"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "savings_due_to_MP"] <- "Savings monitoring plan"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "costs_monitoring_plan_per_ha"] <- "Watch: Monitoring costs"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "amount_of_samples_MP"] <- "Watch: Number of samples"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "chance_higher_price_sustainable"] <- "Reduce: Chance of for higher price"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "costs_more_staff"] <- "Costs for more staff"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "costs_normal_fertilizer"] <- "Normal: Fertilizer costs"
+VIP_table_comp_MPR_N$Variable[VIP_table_comp_MPR_N$Variable == "costs_monitoring_per_ha_month"] <- "Normal: Monitoring costs"
+
+VIP_table_comp_MPR_N <- VIP_table_comp_MPR_N[order(VIP_table_comp_MPR_N$VIP), ] 
+VIP_table_comp_MPR_N$Variable <- factor(VIP_table_comp_MPR_N$Variable, levels = VIP_table_comp_MPR_N$Variable)
+VIP_table_comp_MPR_N$VIP <- round(VIP_table_comp_MPR_N$VIP, digits= 2)%>%
+                            sprintf('%.2f', .) %>%
+                            as.numeric(.)
+
+VIP_table_comp_MPR_N$color <- ifelse(VIP_table_comp_MPR_N$Coefficient>0, "forestgreen", "firebrick3")
+VIP_table_comp_MPR_N$color <- as.character(VIP_table_comp_MPR_N$color)
+
+VIP_barplot_comp_MPR_N <- ggplot(VIP_table_comp_MPR_N, aes(Variable, VIP, fill = VIP, label = VIP)) +
+  geom_bar(width = 1, stat = "identity", color = "black", fill = VIP_table_comp_MPR_N$color) +
+  ggtitle("Subtitle", subtitle = "WatchMoreSprayLess: Variable Importance") +
+  theme_bw()+theme(panel.grid=element_blank())+
+  coord_flip()+
+  scale_y_continuous(limits = c(0, 5)) +
+  theme(text=element_text(family="Times New Roman"),
+        plot.subtitle = element_text(color = "black", size = 15, face = "bold"),
+        plot.title = element_text(color = "white", size = 15, face = "bold"),
+        axis.title.y = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_blank(),
+        legend.position = "none",
+        axis.title.x=element_text(),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15,face="bold"),
+        axis.line = element_line(colour = "black"),
+        panel.background = element_blank())
+
+
+EVPI_and_VIP_R_N <- ggarrange(EVPI_barplot_R_N, VIP_barplot_comp_R_N, ncol = 2, nrow = 1)
+
+EVPI_and_VIP_MPN_N <- ggarrange(EVPI_barplot_MPN_N, VIP_barplot_comp_MPN_N, ncol = 2, nrow = 1)
+
+EVPI_and_VIP_MPR_N <- ggarrange(EVPI_barplot_MPR_N, VIP_barplot_comp_MPR_N, ncol = 2, nrow = 1)
+
+All_EVPI_and_VIP <- ggarrange(EVPI_and_VIP_MPN_N, EVPI_and_VIP_MPR_N, EVPI_and_VIP_R_N, ncol = 1, nrow = 3)
+
+
+R_N <- data.frame(VIP_table_comp_R_N, EVPI_data_R_N, stringsAsFactors = TRUE)
+
+R_N <- merge(VIP_table_comp_R_N, EVPI_data_R_N, by = "Variable", all.x = TRUE)
+R_N$EVPI[is.na(R_N$EVPI)] <- 0
+
+
+EVPI_data_R_N
+q <-  ggplot(data = R_N, aes(x = R_N$Variable, y = R_N$EVPI, fill = R_N$EVPI))+
+  geom_bar(width = 1, stat = "identity", color = "black") +
+  scale_fill_gradient(low = "ivory2", high = "purple") +  
+  ggtitle("Nothing", subtitle ="Information Value") +
+  theme_bw()+theme(panel.grid=element_blank())+ 
+  ylab("EVPI")+ 
+  xlab(NULL)+
+  scale_y_continuous(limits = c(0, 2400), breaks = c(0,1000,2000)) +
+  theme(text=element_text(family="Times New Roman"),
+        plot.title = element_text(hjust = 0.5,color = "white", size = 15, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5,color = "black", size = 15, face = "bold"),
+        axis.title.y = element_text(color="black", size=15), 
+        axis.text.y = element_blank(),
+        axis.line.y.left = element_blank(),
+        plot.margin = unit(c(1,1,1,1), "mm"),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15,face="bold"),
+        legend.position = "none") +
+  coord_flip()
+
+
+VIP_table_comp_R_N
+p <- ggplot(R_N,aes(x=Variable,y=VIP, alpha = VIP))+
+  geom_bar(width = 1,aes(fill=color),stat ="identity", color = "black")+ 
+  ggtitle("Nothing", subtitle ="Variable Importance") +
+  ylab("VIP")+
+  xlab(NULL)+
+  theme_bw()+theme(panel.grid=element_blank())+
+  scale_fill_manual(values = c("firebrick3","forestgreen") )+
+  theme(text=element_text(family="Times New Roman"),
+        plot.title = element_text(hjust = 0.5,color = "white", size = 15, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5,color = "black", size = 15, face = "bold"),
+        legend.position = "none",
+        axis.ticks =  element_line(),
+        axis.text.y = element_blank(),
+        axis.ticks.y.left = element_blank(),
+        axis.ticks.y.right = element_line(),
+        plot.margin = unit(c(1,1,1,1), "mm"),
+        axis.title.x=element_text(),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15,face="bold"),
+        panel.background = element_blank()) +
+  scale_y_reverse(lim = c(5, 0)) +
+  coord_flip()
+
+g.mid <- ggplot(R_N,aes(x=1,y=R_N$Variable))+geom_text(aes(label=R_N$Variable))+
+  geom_segment(aes(x=0,xend=0,yend=R_N$Variable))+
+  geom_segment(aes(x=0,xend=0,yend=R_N$Variable))+
+  ggtitle("SprayLess", subtitle = "Result probably negative") +
+  ylab(NULL)+
+  scale_x_continuous(expand=c(0,0),limits=c(1.0,1.0))+
+  theme(text=element_text(family="Times New Roman"),
+        plot.subtitle = element_text(hjust = 0.5,color = "red", size = 15, face = "bold"),
+        plot.title = element_text(hjust = 0.5, color = "black", size = 15, face = "bold"),
+        axis.title.y = element_text(color="black", size=15),
+        axis.title=element_blank(),
+        panel.grid=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y.left = element_line(color = "black"),
+        axis.ticks.y.right = element_line(color = "black"),
+        axis.line.y = element_blank(),
+        panel.background=element_blank(),
+        axis.text.x=element_text(size=15, color=NA),
+        axis.ticks.x=element_line(size=15, color=NA),
+        plot.margin = unit(c(1,0,1,0), "mm"))
+
+gg1 <- ggplot_gtable(ggplot_build(p))
+gg2 <- ggplot_gtable(ggplot_build(q))
+gg.mid <- ggplot_gtable(ggplot_build(g.mid))
+
+R_N_plot <- cowplot::plot_grid(gg1,gg.mid,gg2, ncol = 3, align = "h")
+
+MPR_N <- data.frame(VIP_table_comp_MPR_N, EVPI_data_MPR_N, stringsAsFactors = TRUE)
+
+MPR_N <- merge(VIP_table_comp_MPR_N, EVPI_data_MPR_N, by = "Variable", all.x = TRUE)
+MPR_N$EVPI[is.na(MPR_N$EVPI)] <- 0
+
+EVPI_data_MPR_N
+q <-  ggplot(data = MPR_N, aes(x = MPR_N$Variable, y = MPR_N$EVPI, fill = MPR_N$EVPI))+
+  geom_bar(width = 1, stat = "identity", color = "black") +
+  scale_fill_gradient(low = "ivory2", high = "purple") +  
+  ggtitle("Nothing" , subtitle =" Information Value") +
+  theme_bw()+theme(panel.grid=element_blank())+ 
+  ylab("EVPI")+ 
+  xlab(NULL)+
+  scale_y_continuous(limits = c(0, 2400), breaks = c(0,1000,2000)) +
+  theme(text=element_text(family="Times New Roman"),
+        plot.title = element_text(hjust = 0.5,color = "white", size = 15, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5,color = "black", size = 15, face = "bold"),
+        axis.title.y = element_text(color="black", size=15), 
+        axis.text.y = element_blank(),
+        axis.line.y.left = element_blank(),
+        plot.margin = unit(c(1,1,1,1), "mm"),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15,face="bold"),
+        legend.position = "none") +
+  coord_flip()
+
+VIP_table_comp_MPR_N
+p <- ggplot(MPR_N,aes(x=Variable,y=VIP, alpha = VIP))+
+  geom_bar(width = 1,aes(fill=color),stat ="identity", color = "black")+ 
+  ggtitle("Nothing", subtitle = "Variable Importance") +
+  ylab("VIP")+
+  xlab(NULL)+
+  theme_bw()+theme(panel.grid=element_blank())+
+  scale_fill_manual(values = c("firebrick3","forestgreen") )+
+  theme(text=element_text(family="Times New Roman"),
+        plot.title = element_text(hjust = 0.5,color = "white", size = 15, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5,color = "black", size = 15, face = "bold"),
+        legend.position = "none",
+        axis.ticks =  element_line(),
+        axis.text.y = element_blank(),
+        axis.ticks.y.left = element_blank(),
+        axis.ticks.y.right = element_line(),
+        plot.margin = unit(c(1,1,1,1), "mm"),
+        axis.title.x=element_text(),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15,face="bold"),
+        panel.background = element_blank()) +
+  scale_y_reverse(lim = c(5, 0)) +
+  coord_flip()
+
+g.mid <- ggplot(MPR_N,aes(x=1,y=MPR_N$Variable))+geom_text(aes(label=MPR_N$Variable))+
+  geom_segment(aes(x=0,xend=0,yend=MPR_N$Variable))+
+  geom_segment(aes(x=0,xend=0,yend=MPR_N$Variable))+
+  ggtitle("WatchMoreSprayLess", subtitle = "Result probably negative") +
+  ylab(NULL)+
+  scale_x_continuous(expand=c(0,0),limits=c(1.0,1.0))+
+  theme(text=element_text(family="Times New Roman"),
+        plot.subtitle = element_text(hjust = 0.5,color = "red", size = 15, face = "bold"),
+        plot.title = element_text(hjust = 0.5, color = "black", size = 15, face = "bold"),
+        axis.title.y = element_text(color="black", size=15),
+        axis.title=element_blank(),
+        panel.grid=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y.left = element_line(color = "black"),
+        axis.ticks.y.right = element_line(color = "black"),
+        axis.line.y = element_blank(),
+        panel.background=element_blank(),
+        axis.text.x=element_text(size=15, color=NA),
+        axis.ticks.x=element_line(size=15, color=NA),
+        plot.margin = unit(c(1,0,1,0), "mm"))
+
+gg1 <- ggplot_gtable(ggplot_build(p))
+gg2 <- ggplot_gtable(ggplot_build(q))
+gg.mid <- ggplot_gtable(ggplot_build(g.mid))
+
+MPR_N_plot <- cowplot::plot_grid(gg1,gg.mid,gg2, ncol = 3, align = "h")
+
+MPN_N <- merge(VIP_table_comp_MPN_N, EVPI_data_MPN_N, by = "Variable", all.x = TRUE)
+MPN_N$EVPI[is.na(MPN_N$EVPI)] <- 0
+
+EVPI_data_MPN_N
+q <-  ggplot(data = MPN_N, aes(x = MPN_N$Variable, y = MPN_N$EVPI, fill = MPN_N$EVPI))+
+  geom_bar(width = 1, stat = "identity", color = "black") +
+  scale_fill_gradient(low = "ivory2", high = "purple") +  
+  ggtitle("Nothing", subtitle = "Information Value") +
+  theme_bw()+theme(panel.grid=element_blank())+ 
+  ylab("EVPI")+ 
+  xlab(NULL)+
+  scale_y_continuous(limits = c(0, 2400), breaks = c(0,1000,2000)) +
+  theme(text=element_text(family="Times New Roman"),
+        plot.title = element_text(hjust = 0.5,color = "white", size = 15, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5,color = "black", size = 15, face = "bold"),
+        axis.title.y = element_text(color="black", size=15), 
+        axis.text.y = element_blank(),
+        axis.line.y.left = element_blank(),
+        plot.margin = unit(c(1,1,1,1), "mm"),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15,face="bold"),
+        legend.position = "none") +
+  coord_flip()
+
+VIP_table_comp_MPN_N
+p <- ggplot(MPN_N,aes(x=Variable,y=VIP, alpha = VIP))+
+  geom_bar(width = 1,aes(fill=color),stat ="identity", color = "black")+ 
+  ggtitle("Nothing", subtitle = "Variable Importance") +
+  ylab("VIP")+
+  xlab(NULL)+
+  theme_bw()+theme(panel.grid=element_blank())+
+  scale_fill_manual(values = c("firebrick3","forestgreen"))+
+  theme(text=element_text(family="Times New Roman"),
+        plot.title = element_text(hjust = 0.5,color = "white", size = 15, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5,color = "black", size = 15, face = "bold"),
+        legend.position = "none",
+        axis.ticks =  element_line(),
+        axis.text.y = element_blank(),
+        axis.ticks.y.left = element_blank(),
+        axis.ticks.y.right = element_line(),
+        plot.margin = unit(c(1,1,1,1), "mm"),
+        axis.title.x=element_text(),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15,face="bold"),
+        panel.background = element_blank()) +
+  scale_y_reverse(lim = c(5, 0)) +
+  coord_flip()
+
+g.mid <- ggplot(MPN_N,aes(x=1,y=MPN_N$Variable))+geom_text(aes(label=MPN_N$Variable))+
+  geom_segment(aes(x=0,xend=0,yend=MPN_N$Variable))+
+  geom_segment(aes(x=0,xend=0,yend=MPN_N$Variable))+
+  ggtitle("WatchMore", subtitle = "Result probably positive") +
+  ylab(NULL)+
+  scale_x_continuous(expand=c(0,0),limits=c(1.0,1.0))+
+  theme(text=element_text(family="Times New Roman"),
+        plot.subtitle = element_text(hjust = 0.5,color = "darkgreen", size = 15, face = "bold"),
+        plot.title = element_text(hjust = 0.5, color = "black", size = 15, face = "bold"),
+        axis.title.y = element_text(color="black", size=15),
+        axis.title=element_blank(),
+        panel.grid=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y.left = element_line(),
+        axis.ticks.y.right = element_blank(),
+        axis.line.y = element_blank(),
+        panel.background=element_blank(),
+        axis.text.x=element_text(size=15, color=NA),
+        axis.ticks.x=element_line(size=15, color=NA),
+        plot.margin = unit(c(1,0,1,0), "mm"))
+
+gg1 <- ggplot_gtable(ggplot_build(p))
+gg2 <- ggplot_gtable(ggplot_build(q))
+gg.mid <- ggplot_gtable(ggplot_build(g.mid))
+
+MPN_N_plot <- cowplot::plot_grid(gg1,gg.mid,gg2, ncol = 3, align = "h")
+
+All_cowplot <- cowplot::plot_grid(MPN_N_plot, MPR_N_plot, R_N_plot, ncol = 1, nrow = 3)
+
+```
+
+# EVPI and VIP analysis of management decisions
+
+Comparison of Information Value and Variable Importance for **WatchMore**, **WatchMoreSprayLess** and **SprayLess**.
+
+```{r All_cowplot, echo=FALSE, fig.height=11, fig.width=8}
+All_cowplot
+```
+
+Here we present Variable Importance in the Projection (VIP) and Information Value (Expected Value of Perfect Information; EVPI) for the implementation of WatchMore, WatchMoreSprayLess and SprayLess in comparison to established heather production. VIP and EVPI specify the influence of each variable on the projected economic value of adopting each strategy (Variable Importance) as well as on whether the simulation makes adoption or non-adoption appear economically preferable. For Variable Importance, we show the top eight variables with the respective EVPI. In the Variable Importance plot, variables that positively affect projected Partial Farm Budget are shown in green, those with negative effects in red.
+
+# Acknowledgements
+
+This research was financially supported by Stiftung Zukunft NRW within the research project inruga (Innovationen fuer NRW zur Steigerung der Ressourceneffizienz und Umweltvertraeglichkeit im Gartenbau Entscheidungshilfen im Zierpflanzenbau). We thank Uwe Rascher and Laura Junker (Forschungszentrum Juelich, IBG-II), Andrew Gallik, Elisabeth Goette, Monika Heupel, Rainer Peters, Michael Stuch, Peter Tiede-Arlt and Rainer Wilke (Landwirtschaftskammer Nordrhein-Westfahlen), Hannah Jaenicke and Miriam Robertz (University of Bonn) and Martin Balmer (DLR) for their workshop participation, commitment and advice in this study. We would like to acknowledge the heather farmers Gerd Canders, Tom Canders, Matthias Kueppers and Verena Kueppers for their participation and contributions throughout the research process. 
+
+# References
