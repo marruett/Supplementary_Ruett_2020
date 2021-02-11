@@ -30,7 +30,7 @@ library(bookdown)
 options(knitr.table.format = "html")
 ```
 
-This supplementary outlines the Decision Analysis approaches used in `Model-based evaluation of management options in ornamental plant nurseries`[@ruett_2020]. Here we provide our input table, code and results to allow for transparent reproduction of the model. To create and organize this supplementary file we used the packages `devtools` [@wickhamDevtoolsToolsMake2019], `knitr` [@xieKnitrGeneralPurposePackage2019], `kableExtra` [@zhuKableExtraConstructComplex2019] and `bookdown` [@xieBookdownAuthoringBooks2019]. All other applied `R` packages are cited and listed in the [References].
+This supplementary is available under https://github.com/marruett/Supplementary_Ruett_2020.git and outlines the Decision Analysis approaches used in `Model-based evaluation of management options in ornamental plant nurseries`[@ruett_2020]. Here we provide our input table, code and results to allow for transparent reproduction of the model. To create and organize this supplementary file we used the packages `devtools` [@wickhamDevtoolsToolsMake2019], `knitr` [@xieKnitrGeneralPurposePackage2019], `kableExtra` [@zhuKableExtraConstructComplex2019] and `bookdown` [@xieBookdownAuthoringBooks2019]. All other applied `R` packages are cited and listed in the [References].
 
 ## Input table for model-based evaluation of management options in ornamental plant nurseries
 
