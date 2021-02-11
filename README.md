@@ -16,7 +16,7 @@ Our input table ```Input_file.csv``` contains all expert estimates that are used
 
 Our legend file ```Legend_file.csv``` contains all variable descriptions that we use in our code.
 
-### The original code
+### The Code
 
 ```The_Model.R``` contains our full code to run the model and to create all figures.
 
