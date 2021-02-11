@@ -24,9 +24,9 @@ Our legend file ```Legend_file.csv``` contains all variable descriptions that we
 
 ```Supplementary_Ruett_2020.Rproj``` is where we stored our R project.
 
-### The RMarkdown file: Calluna_low_prophy_V1.Rmd
+### The RMarkdown file
 
-```Calluna_low_prophy_V1.Rmd``` contains our RMarkdown file as basis of our Supplementary materials.
+```The_R_Markdown.Rmd``` contains our RMarkdown file as basis of our Supplementary materials.
 
 ### The html file
 
