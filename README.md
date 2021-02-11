@@ -12,7 +12,7 @@ Decision Analysis in ornamental plant nurseries enables assessment of management
 
 Our input table ```Input_file.csv``` contains all expert estimates that are used in our ```Calluna_Simulation``` function.
 
-### Legend file
+### The Legend file
 
 Our legend file ```Legend_file.csv``` contains all variable descriptions that we use in our code.
 
