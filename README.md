@@ -6,5 +6,32 @@ Within this repository we provide all necessary files to comprehend procedure of
 
 Decision Analysis in ornamental plant nurseries enables assessment of management options concerning fungal disease regulation. Implementation of management options in ornamental plant nurseries need to be accompanied by maintaining economic viability, determination of systems' uncertainties and factors that influence possible outcome distributions. Results of this approach facilitate decision support for heather producers that seek to implement novel management practices but are exposed to the risky nature of heather production. In addition, recommendations can be made to identify risks before making new decisions.  
 
+## 1. File descriptions
 
+### 1.1 The Input table
 
+Our input table ```Input_file.csv``` contains all expert estimates that are used in our ```Calluna_Simulation``` function.
+
+### 1.2 Legend file
+
+Our legend file ```Legend_file.csv``` contains all variable descriptions that we use in our code.
+
+### 1.3 The original code
+
+```The_Model.R``` contains our full code to run the model and to create all figures.
+
+### 1.4 The R project
+
+```Supplementary_Ruett_2020.Rproj``` is where we stored our R project.
+
+### 1.5 The RMarkdown file: Calluna_low_prophy_V1.Rmd
+
+```Calluna_low_prophy_V1.Rmd``` contains our RMarkdown file as basis of our Supplementary materials.
+
+### 1.6 The html file
+
+Our RMarkdown file ```The_R_Markdown.Rmd``` generates the html file ```The_R_Markdown.html``` that represents our Supplementary materials.
+
+### 1.7 Bibfile and citation style
+
+We apply Journal-of-cleaner-production.csl as a citation style for our Manuscript and Supplementary materials. All citations are stored in the biblibrary.bib file. 
