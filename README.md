@@ -31,4 +31,3 @@ Our legend file ```Legend_file.csv``` contains all variable descriptions that we
 ### The html file
 
 Our RMarkdown file ```The_R_Markdown.Rmd``` generates the html file ```The_R_Markdown.html``` that represents our Supplementary materials.
-The link http://htmlpreview.github.io/?https://github.com/marruett/Supplementary_Ruett_2020/blob/main/The_R_Markdown.html provides direct access to the html file.
