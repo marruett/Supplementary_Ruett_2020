@@ -34,7 +34,7 @@ Our RMarkdown file ```The_R_Markdown.Rmd``` generates the html file ```The_R_Mar
 
 ### Bibfile and citation style
 
-We apply Journal-of-cleaner-production.csl as a citation style for our Manuscript and Supplementary materials. All citations are stored in the biblibrary.bib file. 
+We apply ```journal-of-cleaner-production.csl``` as a citation style for our Manuscript and Supplementary materials. All citations are stored in the ```biblibrary.bib file```. 
 
 ## Folder descriptions
 
