@@ -1219,7 +1219,7 @@ We plotted probability distributions and merged them to illustrate the frequency
 
 For data visualization we applied the `ggplot2` [@wickhamGgplot2ElegantGraphics2016], `ggstance` [@henryGgstanceHorizontalGgplot22019] and `dplyr` [@wickhamDplyrGrammarData2019] packages. We used the function `ggarrange` from the `ggpubr` package [@kassambaraGgpubrGgplot2Based2019] to merge figures. 
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE}
 
 data<-read.csv("Results_low_prophy/mcSimulationResults.csv")
 data_plot_MPN<-dplyr::select(data, starts_with("cashflow_MPN")) %>%
@@ -1343,7 +1343,7 @@ merge_plot_of_geom_density_4 <- annotate_figure(merge_plot_of_geom_density_4,
                                                  face = "bold", size =32, family = "Times"))
 ```
 
-```{r merge_plot_of_geom_density_4, echo=FALSE, fig.height=16, fig.width=14}
+```{r merge_plot_of_geom_density_4, echo=FALSE, fig.height=16, fig.width=14,, message=FALSE, warning=FALSE}
 merge_plot_of_geom_density_4
 ```
 Probability density distributions (scaled density among 10,000 runs of a Monte Carlo simulation) of Partial Farm Budgets (Euros) for four heather production management strategies on an area of one hectare. Watch = Monitoring Plan and normal prophylactic pesticide application. WatchReduce = Monitoring Plan and reduced prophylactic pesticide application. Reduce = Reduced prophylactic pesticide application. Normal = Normal prophylactic pesticide application. 
@@ -1445,7 +1445,8 @@ merge_plot_of_geom_density_3 <- annotate_figure(merge_plot_of_geom_density_3,
                                                                  rot = 90, face = "bold", size =32, family = "Times"))
 ```
 
-```{r merge_plot_of_geom_density_3, echo=FALSE, fig.height=16, fig.width=14}
+
+```{r merge_plot_of_geom_density_3, echo=FALSE, fig.height=16, fig.width=14, , message=FALSE, warning=FALSE}
 merge_plot_of_geom_density_3
 ```
 Probability density distributions (scaled density among 10,000 runs of a Monte Carlo simulation) of Partial Farm Budgets (Euros) for a heather production area of one hectare for three decision options for heather production. WatchMore = Improved monitoring combined with normal prophylactic application compared to current standard practices. WatchMoreSprayLess = Monitoring combined with reduced pesticide application compared to standard practices. SprayLess = Reduced prophylactic pesticide application compared to standard practice, in a system without improved monitoring.
