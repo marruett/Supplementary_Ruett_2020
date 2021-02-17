@@ -1,0 +1,47 @@
+"","thold","EVPI_do","EVPI_dont"
+"costs_staff",108038.48305704,20698.5153868232,4727.38442247706
+"value_of_saleable_Calluna",0.654728201829994,7697.28188154206,41602.6319903254
+"discount_rate",no relationship,0,0
+"production_area",no variation,0,0
+"infection_risk",NA,0,0
+"plants_per_ha",NA,0,0
+"fungus_probability_N",no relationship,0,0
+"fungus_probability_R",no relationship,0,0
+"disease_expansion_factor_N",no relationship,0,0
+"disease_expansion_factor_R",no relationship,0,0
+"detection_factor_N",NA,0,0
+"detection_factor_R",no relationship,0,0
+"fungus_fight_effect_N",NA,0,0
+"fungus_fight_effect_R",no relationship,0,0
+"var_CV",no relationship,0,0
+"number_yearly_prophy_application_N",NA,0,0
+"number_yearly_prophy_application_R",no relationship,0,0
+"effect_no_prophy_application",no relationship,0,0
+"effect_one_prophy_application",no relationship,0,0
+"effect_two_prophy_application",no relationship,0,0
+"effect_three_prophy_application",no relationship,0,0
+"effect_four_prophy_application",no relationship,0,0
+"effect_five_prophy_application",no relationship,0,0
+"effect_six_prophy_application",no relationship,0,0
+"effect_seven_prophy_application",no relationship,0,0
+"effect_eight_prophy_application",no relationship,0,0
+"chance_higher_price_sustainable",no relationship,0,0
+"price_premium_sustainable",NA,0,0
+"value_not_saleable_Calluna",no relationship,0,0
+"value_sorted_out_Calluna",no relationship,0,0
+"value_of_one_new_plant",NA,0,0
+"fertilizer_adjustment",no relationship,0,0
+"costs_normal_fertilizer",NA,0,0
+"costs_more_staff",no relationship,0,0
+"threshold_big_area_more_staff",no relationship,0,0
+"costs_monitoring_per_ha_month",NA,0,0
+"additional_costs_more_monitoring_per_ha",no relationship,0,0
+"yearly_costs_of_direct_fungus_fight_N",NA,0,0
+"yearly_costs_of_direct_fungus_fight_R",no relationship,0,0
+"cost_one_prophy_application",no relationship,0,0
+"detection_factor_MP",no relationship,0,0
+"fungus_fight_effect_MP",NA,0,0
+"amount_of_samples_MP",NA,0,0
+"costs_per_sample_MP",no relationship,0,0
+"savings_due_to_MP",no relationship,0,0
+"costs_monitoring_plan_per_ha",no relationship,0,0
