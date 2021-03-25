@@ -1,5 +1,5 @@
 # Supplementary_Ruett_2020
-This repository contains files that contribute to our supplementary materials of the Manuscript: 'Model-based evaluation of management options in ornamental plant nurseries' by Marius Ruett, Cory Whitney, and Eike Luedeling (2020) (https://doi.org/10.1016/j.jclepro.2020.122653). 
+This repository ![image](https://user-images.githubusercontent.com/46317477/112514622-cb933d80-8d95-11eb-8b63-b1d823cb79ab.png) contains files that contribute to our supplementary materials of the Manuscript: 'Model-based evaluation of management options in ornamental plant nurseries' by Marius Ruett, Cory Whitney, and Eike Luedeling (2020) (https://doi.org/10.1016/j.jclepro.2020.122653). 
 Within this repository we provide all necessary files to comprehend procedure of code calculations. We illustrate our code for data visualization that enables reproductivity of our figures. Code chunks can be used or optimized for own illustrations based on ```decisionSupport``` outcomes.
 
 # Model-based evaluation of management options in ornamental plant nurseries 
